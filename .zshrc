@@ -6,8 +6,8 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$PATH
-export PATH="/usr/local/sbin:$PATH"
+export PATH=$HOME/bin:/usr/local/bin:/usr/local/sbin:$PATH
+#export PATH="/usr/local/sbin:$PATH"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -72,7 +72,7 @@ export TERM="xterm-256color"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(git
-	 vi-mode
+     vi-mode
 	 virtualenv
 	 zsh-syntax-highlighting
      zsh-autosuggestions
@@ -91,7 +91,7 @@ source $ZSH/oh-my-zsh.sh
 if [[ -n $SSH_CONNECTION ]]; then
   export EDITOR='/usr/local/bin/vim'
 else
-  export EDITOR='/usr/bin/vim'
+  export EDITOR='/usr/local/bin/vim'
 fi
 
 # Compilation flags
@@ -124,14 +124,18 @@ function chpwd() {
     ls -a
 }
 
-export WORKON_HOME=$HOME/.virtualenvs
-export PROJECT_HOME=$HOME/Devel
-export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
-export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
-source /usr/local/bin/virtualenvwrapper.sh
+# export WORKON_HOME=$HOME/.virtualenvs
+# export PROJECT_HOME=$HOME/Devel
+# export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
+# export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
+# source /usr/local/bin/virtualenvwrapper.sh
 export PATH="/usr/local/opt/icu4c/bin:$PATH"
 export PATH="/usr/local/opt/icu4c/sbin:$PATH"
-
+# Add yarn paths
+export PATH="$PATH:/opt/yarn-[version]/bin"
+export PATH="$PATH:$(yarn global bin)"
+# Add mysql paths
+export PATH="$PATH:/usr/local/mysql/bin"
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
