@@ -1,9 +1,4 @@
-" be iMproved, required
-    set nocompatible
-" required
-    filetype off
-" for VimWiki
-    " filetype plugin on
+" Use filetype specific setting in .vim/after/ftplugin
     filetype plugin indent on
 " No error bells
     set noerrorbells
@@ -47,7 +42,9 @@
         " Plug 'tpope/vim-surround'
         Plug 'machakann/vim-sandwich'
     " Live html, css, and js
-        Plug 'turbio/bracey.vim'
+        Plug 'turbio/bracey.vim', {'do': 'npm install --prefix server'}
+    " Collection of language packs for vim
+        Plug 'sheerun/vim-polyglot'
     " Auto close (x)html
         Plug 'alvan/vim-closetag'
     " Jinja syntax hylighting
@@ -59,29 +56,18 @@
         Plug 'dhruvasagar/vim-table-mode'
     " Markdown preview
         Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
-    " VimWiki for notes and what notes
-        " Plug 'vimwiki/vimwiki'
-    " post install (yarn install | npm install) then load plugin only for editing supported files
-        Plug 'prettier/vim-prettier', {
-          \ 'do': 'yarn install',
-          \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'yaml', 'html'] }
     " For REPL
         Plug 'jpalardy/vim-slime'
     " Quickscope f/t highlighting
         Plug 'unblevable/quick-scope'
+    " FZF for file finding
+        Plug 'junegunn/fzf.vim'
+        Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
     " Initialize plugin system
     call plug#end()
 " --- PLUGIN end ---
 
 
-" show existing tab with 4 spaces width
-    set tabstop=4
-" when indenting with '>', use 4 spaces width
-    set shiftwidth=4
-" On pressing tab, insert 4 spaces
-    set expandtab
-" make backspace work like most other programs
-    set backspace=2
 
     " au BufNewFile,BufRead *.js, *.html, *.css
     "     \ set tabstop=2 |
@@ -153,8 +139,8 @@ EOF
 
 " --- PLUGIN alterations start ---
     " Vim-Prettier running before save async
-        let g:prettier#autoformat = 0
-        autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.yaml PrettierAsync
+        " let g:prettier#autoformat = 0
+        " autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.yaml PrettierAsync
         " autocmd BufWritePre *.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.yaml PrettierAsync
 
     " Tab highlighting
@@ -163,7 +149,7 @@ EOF
     " NERDTree specific settings
         map <C-n> :NERDTreeToggle<CR>
     " Close if only window open
-        autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+        " autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
     " Show dot files automatically
         let NERDTreeShowHidden=1
     " Add spaces after comment delimiters by default
@@ -212,12 +198,22 @@ EOF
 
     " ALE
     " Check Python files with flake8 and pylint
-        let g:ale_linters = {'python': ['flake8', 'pylint']}
+        let g:ale_linters = {
+        \   'python': ['flake8', 'pylint'],
+        \   'javascript' : ['eslint'],
+        \}
     " Fix Python files with black and iSort
         let g:ale_fixers = {
         \   '*': ['remove_trailing_lines', 'trim_whitespace'],
         \   'python': ['black', 'isort'],
         \   'html': ['html-beautify'],
+        \   'markdown': ['prettier'],
+        \   'css': ['prettier'],
+        \   'scss': ['prettier'],
+        \   'json': ['prettier'],
+        \   'yaml': ['prettier'],
+        \   'graphql': ['prettier'],
+        \   'javascript': ['prettier', 'eslint'],
         \}
         let g:ale_python_flake8_options = "--ignore=E501"
         let g:ale_python_pylint_options = "--disable=C0301,C0103,const-name-hint"
@@ -237,6 +233,7 @@ EOF
         let g:slime_target = "tmux"
         let g:slime_paste_file = "$HOME/.slime_paste"
         let g:slime_default_config = {"socket_name": "default", "target_pane": "{right-of}"}
+        let g:slime_python_ipython = 1
 
     " Quickscope
     " Trigger a highlight in the appropriate direction when pressing these keys:
@@ -244,14 +241,59 @@ EOF
 
     " vim-markdown
         " Spellcheck on for markdown
-            autocmd BufRead,BufNewFile *.md setlocal spell
-            set spelllang=en
+            " autocmd BufRead,BufNewFile *.md setlocal spell
+            " set spelllang=en
         " disable vim-markdown fold method for vimwiki file type
             " au Filetype vimwiki let g:vim_markdown_folding_disabled = 1
         " set conceal for markdown to hide link and italics
-            au Filetype markdown set conceallevel=2
+            " au Filetype markdown set conceallevel=2
+
+    " VimWiki
+        "     let g:vimwiki_list = [{'path': '/Users/JeremyTabke/Documents/VimWiki/',
+        "                            \ 'syntax': 'markdown', 'ext': '.md'}]
+        " " Only vimwiki filetype in above directory
+        "     let g:vimwiki_global_ext = 0
+        " " Disable tab intercept to allow for autompletion, use <leader>tm to activate
+        " " table mode
+        "     let g:vimwiki_key_mappings = { 'table_mappings': 0 }
+        " " Folding method for wiki filetype
+        "     let g:vimwiki_folding = "custom"
+        " " Markdown syntax folding so that last blank line is not folded before #
+        "     function! VimwikiFoldLevelCustom(lnum)
+        "         let pounds = strlen(matchstr(getline(a:lnum), '^#\+'))
+        "         if (pounds)
+        "             return '>' . pounds  " start a fold level
+        "         endif
+        "         if getline(a:lnum) =~? '\v^\s*$'
+        "             if (strlen(matchstr(getline(a:lnum + 1), '^#\+')))
+        "                 return '-1' " don't fold last blank line before header
+        "             endif
+        "         endif
+        "         return '=' " return previous fold level
+        "     endfunction
+        "     augroup VimrcAuGroup
+        "         autocmd!
+        "         autocmd FileType vimwiki setlocal foldmethod=expr |
+        "             \ setlocal foldenable | set foldexpr=VimwikiFoldLevelCustom(v:lnum)
+        "     augroup END
+
+        " " Diary command to generate diary index and update links
+        "     command! Diary VimwikiDiaryIndex
+        "     augroup vimwikigroup
+        "         autocmd!
+        "         " automatically update links on read diary
+        "         autocmd BufRead,BufNewFile diary.md VimwikiDiaryGenerateLinks
+        "     augroup end
+        " " Custom diary template script
+        "     au BufNewFile ~/Documents/VimWiki/diary/*.md :silent 0r !~/.vim/bin/generate-vimwiki-diary-template.py '%'
+        " Custom meeting notes template script
+        " Auto name file in meeting_notes folders with current date
             " au BufNewFile ~/Documents/VimWiki/Work/*/Meeting_Notes/* execute 'file' fnameescape(strftime("%Y-%m-%d.md"))
             au BufNewFile ~/Documents/VimWiki/Work/*/Meeting_Notes/*.md :silent 0r !~/.vim/bin/generate-vimwiki-meeting_notes-template.py '%'
+
+    " FZF
+        " Remap Ctrl-f to :Files for quick FZF access
+            nnoremap <silent> <C-f> :Files<CR>
 " --- PLUGIN alterations end ---
 
 
@@ -289,8 +331,10 @@ EOF
         nnoremap <Leader>vr :source $MYVIMRC<CR>
     " Open notes index file
         nnoremap <Leader>ww :e ~/Documents/VimWiki/index.md<CR>
-    " enable mouse use
-        set mouse=a
+    " Easy buffer navigation
+        nnoremap <Leader>l :ls<CR>
+        nnoremap <Leader>b :bp<CR>
+        nnoremap <Leader>f :bn<CR>
     " indent/unindent with tab/shift-tab
         " nmap <Tab> >>
         " imap <S-Tab> <Esc><<i
@@ -298,16 +342,22 @@ EOF
 " --- REMAPS end ---
 
 
+" show existing tab with 4 spaces width
+    set tabstop=4
+" when indenting with '>', use 4 spaces width
+    set shiftwidth=4
+" On pressing tab, insert 4 spaces
+    set expandtab
+" make backspace work like most other programs
+    set backspace=2
 " use system clipboard
     set clipboard=unnamed
-    set smartindent
+" Copy indent from current line when starting a new line
     set autoindent
+" enable mouse use
+    set mouse=a
 " automatically set working directory to current file location
     set autochdir
-" Set foldmethod for all files
-    set foldenable
-    set foldmethod=indent
-    set foldlevel=1
 " Searches with no capitals are case insensitive, searches will caps are
     set smartcase
     set ignorecase
