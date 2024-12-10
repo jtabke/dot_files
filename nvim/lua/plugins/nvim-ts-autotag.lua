@@ -4,5 +4,4 @@ return {
 	dependencies = {
 		"nvim-treesitter/nvim-treesitter",
 	},
-	config = {}, -- This is the same as calling the setup() function
 }

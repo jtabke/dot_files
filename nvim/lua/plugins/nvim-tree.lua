@@ -6,6 +6,7 @@ return {
 		"nvim-tree/nvim-web-devicons",
 	},
 	config = function()
+		require("nvim-web-devicons").get_icons()
 		require("nvim-tree").setup({
 			sync_root_with_cwd = true,
 			respect_buf_cwd = true,

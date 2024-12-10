@@ -3,9 +3,9 @@ local config = function()
 		indent = {
 			enable = true,
 		},
-		autotag = {
-			enable = true,
-		},
+		-- autotag = {
+		-- 	--enable = true,
+		-- },
 		ensure_installed = {
 			"markdown",
 			"json",
@@ -23,6 +23,7 @@ local config = function()
 			enable = true,
 		},
 	})
+	require("nvim-ts-autotag").setup()
 end
 
 return {

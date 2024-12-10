@@ -42,6 +42,8 @@ keymap.set("n", "<Leader>ve", ":e $MYVIMRC<CR>")
 -- Reload vimrc configuration file
 keymap.set("n", "<Leader>vr", ":source $MYVIMRC<CR>")
 
+-- Edit Notes
+keymap.set("n", "<Leader>ww", ":e ~/Documents/Notes<CR>")
 -- Shortcut for file explorer
 keymap.set("n", "<C-n>", ":NvimTreeToggle<CR>")
 
