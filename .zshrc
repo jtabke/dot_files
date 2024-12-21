@@ -58,9 +58,8 @@ source "/usr/share/fzf/key-bindings.zsh"
 # export FZF_DEFAULT_COMMAND='find . \! \( -type d -path ./.git -prune \) \! -type d \! -name '\''*.tags'\'' -printf '\''%P\n'\'
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden'
 
-# spaceship prompt
-source "$HOME/.config/zsh/plugins/spaceship-prompt/spaceship.zsh"
-export SPACESHIP_PROMPT_ASYNC=false # async currently broken
+# starship prompt https://starship.rs/
+eval "$(starship init zsh)"
 
 # zsh-autosuggestions
 source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
