@@ -8,13 +8,19 @@ setopt SHARE_HISTORY
 #bindkey -v
 bindkey '^R' history-incremental-search-backward
 # Yank to the system clipboard
-function vi-yank-xclip {
+function vi-yank-clipboard {
     zle vi-yank
-   echo "$CUTBUFFER" | xclip -i
+    if type -p xclip &> /dev/null; then
+        echo -n "$CUTBUFFER" | xclip -selection clipboard
+    elif type -p wl-copy &> /dev/null; then
+        echo -n "$CUTBUFFER" | wl-copy
+    else
+        echo "Clipboard tool (xclip or wl-copy) not found"
+    fi
 }
 
-zle -N vi-yank-xclip
-bindkey -M vicmd 'y' vi-yank-xclip
+zle -N vi-yank-clipboard
+bindkey -M vicmd 'y' vi-yank-clipboard
 
 bindkey "^[[3~" delete-char #make delete key work
 
@@ -53,12 +59,14 @@ function chpwd() {
 #source "$HOME/.config/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh"
 
 #fzf key bindings
-source "/usr/share/fzf/key-bindings.zsh"
+# source "/usr/share/fzf/key-bindings.zsh"
+# Set up fzf key bindings and fuzzy completion
+source <(fzf --zsh)
 # For a more efficient version of find you should prune directories, then (optionally) filter out specific files
 # export FZF_DEFAULT_COMMAND='find . \! \( -type d -path ./.git -prune \) \! -type d \! -name '\''*.tags'\'' -printf '\''%P\n'\'
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden'
 
-# starship prompt https://starship.rs/
+# starship prompt
 eval "$(starship init zsh)"
 
 # zsh-autosuggestions
