@@ -1,12 +1,16 @@
-# Set History File location
+# History Settings
 HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE=~/.cache/zsh/.zhistory
 setopt SHARE_HISTORY
 
+# Keybindings
+bindkey '^R' history-incremental-search-backward
+bindkey "^[[3~" delete-char  # Fix delete key
+bindkey '^[[Z' reverse-menu-complete  # Shift+Tab for reverse menu completion
 # vi mode
 #bindkey -v
-bindkey '^R' history-incremental-search-backward
+
 # Yank to the system clipboard
 function vi-yank-clipboard {
     zle vi-yank
@@ -18,11 +22,8 @@ function vi-yank-clipboard {
         echo "Clipboard tool (xclip or wl-copy) not found"
     fi
 }
-
 zle -N vi-yank-clipboard
-bindkey -M vicmd 'y' vi-yank-clipboard
-
-bindkey "^[[3~" delete-char #make delete key work
+bindkey -M vicmd 'y' vi-yank-clipboard  # Assumes vi mode is enabled elsewhere
 
 # Enable colors
 autoload -U colors && colors
@@ -34,43 +35,32 @@ autoload -Uz compinit
 zstyle ':completion:*' menu select # tab menu autocompletetion and case insensitive
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' # tab menu autocompletetion and case insensitive
 zmodload zsh/complist # make available keymaps like menuselect
-bindkey '^[[Z' reverse-menu-complete # shift tab to go back through menu
-#bindkey -M menuselect '^[[Z' reverse-menu-complete # shift tab to go back through menu
 compinit
 _comp_options+=(globdots) # include hidden files
 
-## Alias
-
+# Aliases
 alias vim="nvim"
 alias vi="nvim"
+# Cross-platform ls aliases
+if [[ $(uname) == "Darwin" ]]; then
+    # macOS
+    alias ls="ls -a -G"          # -G for colors, -a for all files
+    alias ll="ls -lah -G"        # -l for long format, -h for human-readable sizes
+else
+    # Linux/WSL
+    alias ls="ls -a --color=auto"  # --color=auto for colors, -a for all files
+    alias ll="ls -lah --color=auto" # -l for long format, -h for human-readable
+fi
 
-alias ll="ls -lah"
-alias ls="ls -a --color=auto"
-
-# show folder after change directory
+# Show directory contents after cd
 function chpwd() {
     emulate -L zsh
     ls -a
 }
 
-## Plugins
-
-# zsh-vi-mode
-#source "$HOME/.config/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh"
-
-#fzf key bindings
-# source "/usr/share/fzf/key-bindings.zsh"
-# Set up fzf key bindings and fuzzy completion
-source <(fzf --zsh)
-# For a more efficient version of find you should prune directories, then (optionally) filter out specific files
-# export FZF_DEFAULT_COMMAND='find . \! \( -type d -path ./.git -prune \) \! -type d \! -name '\''*.tags'\'' -printf '\''%P\n'\'
-export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden'
-
-# starship prompt
-eval "$(starship init zsh)"
-
-# zsh-autosuggestions
+# External Tools and Plugins
+export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden'  # Ensure ripgrep is installed
+source <(fzf --zsh)  # fzf key bindings and completion
+eval "$(starship init zsh)"  # Starship prompt (overrides PS1)
 source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
-
-# Load zsh-syntax-highlighitng; should be sourced last
 source "$HOME/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
