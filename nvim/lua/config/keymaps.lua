@@ -33,6 +33,7 @@ keymap.set("n", "<leader>v", ":vsplit<Space>")
 keymap.set("n", "<leader>l", ":ls<CR>")
 keymap.set("n", "<leader>b", ":bp<CR>")
 keymap.set("n", "<leader>n", ":bn<CR>")
+keymap.set("n", "<leader>x", ":bd<CR>")
 
 -- Save with leader S
 keymap.set("n", "<Leader>s", ":update<CR>")
