@@ -32,9 +32,19 @@ opt.termguicolors = true
 -- Enable mouse use
 --opt.mouse = 'a' --already default in nvim
 
+-- Default splits to the right
+opt.splitright = true
+
 -- Automatically set working directory to current file location
 opt.autochdir = true
 
 -- Searches with no capitals are case insensitive, searches with caps are case-sensitive
 opt.smartcase = true
 opt.ignorecase = true
+
+-- display whitespace
+opt.list = true
+-- Define how special characters are displayed
+-- WARNING: 'space:·' shows *every* space as '·', which is usually too noisy.
+opt.listchars = "tab:| ,space:·"
+-- opt.listchars = "tab:|"
