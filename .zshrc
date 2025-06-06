@@ -51,12 +51,40 @@ else
     alias ls="ls -a --color=auto"  # --color=auto for colors, -a for all files
     alias ll="ls -lah --color=auto" # -l for long format, -h for human-readable
 fi
+# gr to git repo root
+alias gr='cd $(git rev-parse --show-toplevel)'
 
 # Show directory contents after cd
 function chpwd() {
     emulate -L zsh
     ls -a
 }
+
+# Auto activate venv
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd auto_activate_venv
+
+# Auto activate venv
+function venv_auto_activate() {
+  # Look for a virtualenv in the current directory or its parents
+  local dir=$PWD
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/venv/bin/activate" ]]; then
+      if [[ "$VIRTUAL_ENV" != "$dir/venv" ]]; then
+        source "$dir/venv/bin/activate"
+      fi
+      return
+    fi
+    dir=$(dirname "$dir")
+  done
+  # Deactivate if no venv found and one is active
+  if [[ -n "$VIRTUAL_ENV" ]]; then
+    deactivate
+  fi
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd venv_auto_activate
+venv_auto_activate  # Run once at shell startup
 
 # External Tools and Plugins
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden'  # Ensure ripgrep is installed
