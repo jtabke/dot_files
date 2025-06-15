@@ -7,7 +7,7 @@ return {
 		conform.setup({
 			formatters_by_ft = {
 				lua = { "stylua" },
-				python = { "isort", "black" },
+				python = { "ruff_format" },
 				javascript = { "prettier" },
 				css = { "prettier" },
 				typescript = { "prettier" },
@@ -16,11 +16,15 @@ return {
 				json = { "prettier" },
 				astro = { "prettier" },
 			},
+			-- format_on_save = false, -- Disable format on save
 			format_on_save = {
 				lsp_fallback = true,
 				async = false,
 				-- timeout_ms = 500,
 			},
 		})
+		vim.keymap.set({ "n", "x" }, "<leader>f", function()
+			conform.format({ async = true, lsp_fallback = true, timeout_ms = 500 })
+		end, { desc = "Format buffer with conform.nvim" })
 	end,
 }

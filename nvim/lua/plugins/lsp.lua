@@ -113,4 +113,8 @@ return {
 			})
 		end,
 	},
+	-- Progress notifications
+	{
+		"j-hui/fidget.nvim",
+	},
 }

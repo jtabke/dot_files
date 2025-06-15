@@ -48,3 +48,14 @@ opt.list = true
 -- WARNING: 'space:·' shows *every* space as '·', which is usually too noisy.
 opt.listchars = "tab:| ,space:·"
 -- opt.listchars = "tab:|"
+
+-- Reload files on change automatically
+vim.o.autoread = true
+vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained" }, {
+	command = "if mode() != 'c' | checktime | endif",
+	pattern = { "*" },
+})
+vim.api.nvim_create_autocmd({ "FileChangedShellPost" }, {
+	command = 'echohl WarningMsg | echo "File changed on disk. Buffer reloaded." | echohl None',
+	pattern = { "*" },
+})
