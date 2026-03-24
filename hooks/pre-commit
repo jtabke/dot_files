@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Pre-commit hook: scan staged files for potential secrets/sensitive data
+
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+# Patterns that suggest secrets (regex for grep -E)
+PATTERNS=(
+  # API keys and tokens
+  '[A-Za-z0-9_]*(SECRET|KEY|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Za-z0-9_]*\s*=\s*["\x27][^\s"'\'']{8,}'
+  # AWS keys
+  'AKIA[0-9A-Z]{16}'
+  # Generic high-entropy hex/base64 strings assigned to key-like variables
+  '(api_key|apikey|api_secret|access_token|auth_token|secret_key)\s*[:=]\s*["\x27][A-Za-z0-9+/=_-]{20,}'
+  # Private keys
+  '-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'
+  # Common provider tokens
+  'sk-[A-Za-z0-9]{20,}'
+  'ghp_[A-Za-z0-9]{36}'
+  'gho_[A-Za-z0-9]{36}'
+  'glpat-[A-Za-z0-9_-]{20,}'
+  'xox[bprs]-[A-Za-z0-9-]{10,}'
+)
+
+FAILED=0
+
+# Only check staged files (added or modified), skip binary files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+# --- Suspicious Unicode detection ---
+# Bidi override/embedding chars used in trojan source attacks (CVE-2021-42574)
+# Zero-width chars used to hide malicious code or create homoglyph attacks
+UNICODE_PATTERNS=(
+  # Bidi control characters (trojan source)
+  $'\xe2\x80\xaa'   # U+202A LEFT-TO-RIGHT EMBEDDING
+  $'\xe2\x80\xab'   # U+202B RIGHT-TO-LEFT EMBEDDING
+  $'\xe2\x80\xac'   # U+202C POP DIRECTIONAL FORMATTING
+  $'\xe2\x80\xad'   # U+202D LEFT-TO-RIGHT OVERRIDE
+  $'\xe2\x80\xae'   # U+202E RIGHT-TO-LEFT OVERRIDE
+  $'\xe2\x81\xa6'   # U+2066 LEFT-TO-RIGHT ISOLATE
+  $'\xe2\x81\xa7'   # U+2067 RIGHT-TO-LEFT ISOLATE
+  $'\xe2\x81\xa8'   # U+2068 FIRST STRONG ISOLATE
+  $'\xe2\x81\xa9'   # U+2069 POP DIRECTIONAL ISOLATE
+  # Zero-width characters
+  $'\xe2\x80\x8b'   # U+200B ZERO WIDTH SPACE
+  $'\xe2\x80\x8c'   # U+200C ZERO WIDTH NON-JOINER
+  $'\xe2\x80\x8d'   # U+200D ZERO WIDTH JOINER
+  $'\xef\xbb\xbf'   # U+FEFF ZERO WIDTH NO-BREAK SPACE (BOM in middle of file)
+  $'\xc2\xad'       # U+00AD SOFT HYPHEN (invisible in most contexts)
+)
+
+UNICODE_NAMES=(
+  "LEFT-TO-RIGHT EMBEDDING (U+202A)"
+  "RIGHT-TO-LEFT EMBEDDING (U+202B)"
+  "POP DIRECTIONAL FORMATTING (U+202C)"
+  "LEFT-TO-RIGHT OVERRIDE (U+202D)"
+  "RIGHT-TO-LEFT OVERRIDE (U+202E)"
+  "LEFT-TO-RIGHT ISOLATE (U+2066)"
+  "RIGHT-TO-LEFT ISOLATE (U+2067)"
+  "FIRST STRONG ISOLATE (U+2068)"
+  "POP DIRECTIONAL ISOLATE (U+2069)"
+  "ZERO WIDTH SPACE (U+200B)"
+  "ZERO WIDTH NON-JOINER (U+200C)"
+  "ZERO WIDTH JOINER (U+200D)"
+  "ZERO WIDTH NO-BREAK SPACE / BOM (U+FEFF)"
+  "SOFT HYPHEN (U+00AD)"
+)
+
+while IFS= read -r file; do
+  CONTENT=$(git show ":$file" 2>/dev/null) || continue
+  for i in "${!UNICODE_PATTERNS[@]}"; do
+    MATCHES=$(echo "$CONTENT" | grep -n "${UNICODE_PATTERNS[$i]}" 2>/dev/null)
+    if [ -n "$MATCHES" ]; then
+      echo -e "${RED}Suspicious Unicode in${NC} ${YELLOW}$file${NC}: ${UNICODE_NAMES[$i]}"
+      echo "$MATCHES" | head -3
+      echo ""
+      FAILED=1
+    fi
+  done
+done <<< "$STAGED_FILES"
+
+# --- Secret patterns ---
+for pattern in "${PATTERNS[@]}"; do
+  # Check staged content (not working tree) via git show
+  while IFS= read -r file; do
+    MATCHES=$(git show ":$file" 2>/dev/null | grep -nEi "$pattern" 2>/dev/null)
+    if [ -n "$MATCHES" ]; then
+      echo -e "${RED}Possible secret detected in${NC} ${YELLOW}$file${NC}:"
+      echo "$MATCHES" | head -5
+      echo ""
+      FAILED=1
+    fi
+  done <<< "$STAGED_FILES"
+done
+
+if [ "$FAILED" -eq 1 ]; then
+  echo -e "${RED}Commit blocked.${NC} Review the above matches.
+If these are false positives, commit with: git commit --no-verify"
+  exit 1
+fi
+
+exit 0
