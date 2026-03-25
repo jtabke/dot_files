@@ -5,10 +5,23 @@
 
 set -euo pipefail
 
+# Only react to real workspace changes to avoid update storms
+if [[ "${SENDER-}" != "aerospace_workspace_change" ]]; then
+  exit 0
+fi
+
 WS="$1"
 PLUGIN_DIR="${CONFIG_DIR}/plugins"
 # shellcheck disable=SC1090
 source "$PLUGIN_DIR/icon_map.sh"
+
+# --- Update display assignment (handles workspaces moving between monitors) ---
+for mid in $(aerospace list-monitors | awk '{print $1}'); do
+  if aerospace list-workspaces --monitor "$mid" | grep -qx "$WS"; then
+    sketchybar --set "$NAME" display="$mid"
+    break
+  fi
+done
 
 # --- Figure out who is focused ---
 # On aerospace_workspace_change, SketchyBar passes FOCUSED_WORKSPACE.
@@ -26,6 +39,8 @@ if [[ -z "$FOCUSED" ]]; then
     FOCUSED="$(aerospace list-workspaces 2>/dev/null | awk '/\*/{print $1; exit}')"
   fi
 fi
+
+[[ -z "$FOCUSED" ]] && exit 0
 
 # --- Highlight background ONLY when focus actually changes ---
 # Avoid fighting with ourselves during front_app_switched refreshes.
@@ -59,7 +74,6 @@ done <<< "$apps"
 if [[ -n "$icons" ]]; then
   sketchybar --set "$NAME" drawing=on label.drawing=on label="$icons" icon.drawing=on
 elif [[ "$FOCUSED" == "$WS" ]]; then
-  # FIX: label.drawing should be ON here (was off)
   sketchybar --set "$NAME" drawing=on label.drawing=off label="$WS" icon.drawing=on
 else
   sketchybar --set "$NAME" drawing=off label="" label.drawing=off icon.drawing=off

@@ -34,37 +34,7 @@ default=(
 sketchybar --default "${default[@]}"
 
 ##### Adding Aerospace Space Indicators #####
-sketchybar --add event aerospace_workspace_change
-
-# for sid in $(aerospace list-workspaces --all); do
-#     sketchybar --add item space.$sid left \
-#         --subscribe space.$sid aerospace_workspace_change \
-#         --set space.$sid \
-#         background.color=0x44ffffff \
-#         background.corner_radius=5 \
-#         background.height=20 \
-#         background.drawing=off \
-#         label="$sid" \
-#         click_script="aerospace workspace $sid" \
-#         script="$PLUGIN_DIR/aerospace.sh $sid"
-# done
-for sid in $(aerospace list-workspaces --all); do
-  sketchybar --add item space.$sid left \
-    --subscribe space.$sid aerospace_workspace_change front_app_switched \
-    --set space.$sid \
-      background.color=0x44ffffff \
-      background.corner_radius=5 \
-      background.height=20 \
-      background.drawing=off \
-      icon="$sid" \
-      icon.font="Hack Nerd Font:Bold:13.0" \
-      label.font="sketchybar-app-font:Regular:16.0" \
-      label.drawing=on \
-      click_script="aerospace workspace $sid" \
-      script="$PLUGIN_DIR/aerospace.sh $sid"
-done
-
-# sketchybar --add event aerospace_workspace_change
+# sketchybar --add event aerospace_workspace_change front_app_switched
 #
 # for sid in $(aerospace list-workspaces --all); do
 #   sketchybar --add item space.$sid left \
@@ -79,10 +49,49 @@ done
 #       label.font="sketchybar-app-font:Regular:16.0" \
 #       label.drawing=on \
 #       click_script="aerospace workspace $sid" \
-#       script="$PLUGIN_DIR/aerospace_apps.sh $sid" \
-#       update_freq=0
+#       script="$PLUGIN_DIR/aerospace.sh $sid"
 # done
 
+sketchybar --add event aerospace_workspace_change
+
+for sid in $(aerospace list-workspaces --all); do
+  sketchybar --add item space.$sid left \
+    --subscribe space.$sid aerospace_workspace_change \
+    --set space.$sid \
+      background.color=0x44ffffff \
+      background.corner_radius=5 \
+      background.height=20 \
+      background.drawing=off \
+      icon="$sid" \
+      icon.font="Hack Nerd Font:Bold:13.0" \
+      label.font="sketchybar-app-font:Regular:16.0" \
+      label.drawing=on \
+      click_script="aerospace workspace $sid" \
+      script="$PLUGIN_DIR/aerospace.sh $sid"
+done
+# # We only need to declare our custom event. Built-ins (like front_app_switched) don't need --add.
+# sketchybar --add event aerospace_workspace_change
+#
+# ##### Dispatcher (hidden) #####
+# # Single script runs once per workspace change and updates ALL space items.
+# sketchybar --add item aerospace.dispatcher left \
+#   --set aerospace.dispatcher drawing=off script="$PLUGIN_DIR/aerospace_dispatch.sh" \
+#   --subscribe aerospace.dispatcher aerospace_workspace_change
+#
+# ##### Space Items (PASSIVE — no per-item scripts, no front_app_switched) #####
+# for sid in $(aerospace list-workspaces --all); do
+#   sketchybar --add item space.$sid left \
+#     --set space.$sid \
+#       background.color=0x44ffffff \
+#       background.corner_radius=5 \
+#       background.height=20 \
+#       background.drawing=off \
+#       icon="$sid" \
+#       icon.font="Hack Nerd Font:Bold:13.0" \
+#       label.font="sketchybar-app-font:Regular:16.0" \
+#       label.drawing=on \
+#       click_script="aerospace workspace $sid"
+# done
 ##### Adding Left Items #####
 # We add some regular items to the left side of the bar, where
 # only the properties deviating from the current defaults need to be set
@@ -111,9 +120,17 @@ sketchybar --add item clock right \
            --subscribe volume volume_change \
            --add item battery right \
            --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
-           --subscribe battery system_woke power_source_change
+           --subscribe battery system_woke power_source_change \
+           --add item cpu right \
+           --set cpu update_freq=5 icon= label="CPU" script="$PLUGIN_DIR/system_stats.sh" \
+           --add item memory right \
+           --set memory update_freq=5 icon= label="MEM" script="$PLUGIN_DIR/system_stats.sh"
 
 
 
 ##### Force all scripts to run the first time (never do this in a script) #####
 sketchybar --update
+
+# Trigger an initial workspace change so aerospace.sh assigns each space
+# item to the correct monitor display
+sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE="$(aerospace list-workspaces --focused)"

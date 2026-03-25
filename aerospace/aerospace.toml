@@ -1,18 +1,13 @@
 # Place a copy of this config to ~/.aerospace.toml
 # After that, you can edit ~/.aerospace.toml to your liking
 
+config-version = 2
+
 # Start AeroSpace at login
 start-at-login = true
 
-# You can use it to add commands that run after login to macOS user session.
-# 'start-at-login' needs to be 'true' for 'after-login-command' to work
-# Available commands: https://nikitabobko.github.io/AeroSpace/commands
-after-login-command = []
-
 # You can use it to add commands that run after AeroSpace startup.
-# 'after-startup-command' is run after 'after-login-command'
-# Available commands : https://nikitabobko.github.io/AeroSpace/commands
-# after-startup-command = []
+# Available commands: https://nikitabobko.github.io/AeroSpace/commands
 
 # Run Sketchybar together with AeroSpace
 # sketchbar has a built-in detection of already running process,
@@ -42,16 +37,28 @@ default-root-container-layout = 'tiles'
 default-root-container-orientation = 'auto'
 
 # Mouse follows focus when focused monitor changes
-# Drop it from your config, if you don't like this behavior
 # See https://nikitabobko.github.io/AeroSpace/guide#on-focus-changed-callbacks
 # See https://nikitabobko.github.io/AeroSpace/commands#move-mouse
-# Fallback value (if you omit the key): on-focused-monitor-changed = []
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+on-focus-changed = ['move-mouse window-lazy-center']
 
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
 # Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
 automatically-unhide-macos-hidden-apps = false
+
+# Pin workspaces to monitors
+# Monitor 1 = external (left), Monitor 2 = external (right/main), Monitor 3 = built-in
+[workspace-to-monitor-force-assignment]
+1 = 'main'
+2 = 'main'
+3 = 'main'
+4 = 1
+5 = 1
+6 = 1
+7 = 3
+8 = 3
+9 = 3
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
@@ -71,7 +78,7 @@ automatically-unhide-macos-hidden-apps = false
     inner.vertical =   0
     outer.left =       0
     outer.bottom =     0
-    outer.top =        0
+    outer.top =        [{ monitor.'built-in' = 0 }, 40]
     outer.right =      0
 
 # 'main' binding mode declaration
@@ -154,6 +161,18 @@ automatically-unhide-macos-hidden-apps = false
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-workspace-to-monitor
     alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 
+    # Focus monitor
+    alt-ctrl-h = 'focus-monitor left'
+    alt-ctrl-l = 'focus-monitor right'
+    alt-ctrl-j = 'focus-monitor down'
+    alt-ctrl-k = 'focus-monitor up'
+
+    # Move node to monitor
+    alt-ctrl-shift-h = 'move-node-to-monitor --focus-follows-window left'
+    alt-ctrl-shift-l = 'move-node-to-monitor --focus-follows-window right'
+    alt-ctrl-shift-j = 'move-node-to-monitor --focus-follows-window down'
+    alt-ctrl-shift-k = 'move-node-to-monitor --focus-follows-window up'
+
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     alt-shift-semicolon = 'mode service'
 
@@ -178,10 +197,14 @@ automatically-unhide-macos-hidden-apps = false
     shift-down = ['volume set 0', 'mode main']
 
 [[on-window-detected]]
+    if.app-id = 'com.apple.finder'
+    run = 'layout floating'
+[[on-window-detected]]
     if.app-id = 'com.apple.MobileSMS'
     run = 'move-node-to-workspace 5'
 [[on-window-detected]]
     if.app-id = 'net.kovidgoyal.kitty'
     run = 'move-node-to-workspace 2'
-
-
+[[on-window-detected]]
+    if.app-id = 'com.mitchellh.ghostty'
+    run = 'move-node-to-workspace 2'
