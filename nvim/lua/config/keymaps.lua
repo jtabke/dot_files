@@ -1,52 +1,32 @@
--- change leader to space
+-- Change leader to space
 vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
-local keymap = vim.keymap --for conciseness
+local keymap = vim.keymap.set
 
 -- Split navigation
-keymap.set("n", "<C-J>", "<C-W><C-J>")
-keymap.set("n", "<C-K>", "<C-W><C-K>")
-keymap.set("n", "<C-L>", "<C-W><C-L>")
-keymap.set("n", "<C-H>", "<C-W><C-H>")
+keymap("n", "<C-j>", "<C-w><C-j>", { desc = "Move to split below" })
+keymap("n", "<C-k>", "<C-w><C-k>", { desc = "Move to split above" })
+keymap("n", "<C-l>", "<C-w><C-l>", { desc = "Move to split right" })
+keymap("n", "<C-h>", "<C-w><C-h>", { desc = "Move to split left" })
 
--- Split creation
-keymap.set("n", "<leader>h", ":split<Space>")
-keymap.set("n", "<leader>v", ":vsplit<Space>")
+-- Split creation. Keep these off <leader>h because gitsigns uses <leader>h... mappings.
+keymap("n", "<leader>sh", "<cmd>split<CR>", { desc = "Horizontal split" })
+keymap("n", "<leader>sv", "<cmd>vsplit<CR>", { desc = "Vertical split" })
 
--- Save with leader S
-keymap.set("n", "<Leader>s", ":update<CR>")
+-- Buffers
+keymap("n", "<leader>l", "<cmd>ls<CR>", { desc = "List buffers" })
+keymap("n", "<leader>b", "<cmd>bprevious<CR>", { desc = "Previous buffer" })
+keymap("n", "<leader>n", "<cmd>bnext<CR>", { desc = "Next buffer" })
+keymap("n", "<leader>x", "<cmd>bdelete<CR>", { desc = "Delete buffer" })
 
--- Edit c configuration file
-keymap.set("n", "<Leader>ve", ":e $MYVIMRC<CR>")
+-- Config
+keymap("n", "<leader>s", "<cmd>update<CR>", { desc = "Save file" })
+keymap("n", "<leader>ve", "<cmd>edit $MYVIMRC<CR>", { desc = "Edit Neovim config" })
+keymap("n", "<leader>vr", "<cmd>source $MYVIMRC<CR>", { desc = "Reload Neovim config" })
 
--- Reload c configuration file
-keymap.set("n", "<C-J>", "<C-W><C-J>")
-keymap.set("n", "<C-K>", "<C-W><C-K>")
-keymap.set("n", "<C-L>", "<C-W><C-L>")
-keymap.set("n", "<C-H>", "<C-W><C-H>")
+-- Notes
+keymap("n", "<leader>ww", "<cmd>edit ~/Documents/Notes<CR>", { desc = "Open notes" })
 
--- Split creation
-keymap.set("n", "<leader>h", ":split<Space>")
-keymap.set("n", "<leader>v", ":vsplit<Space>")
-
--- Easy buffer navigation
-keymap.set("n", "<leader>l", ":ls<CR>")
-keymap.set("n", "<leader>b", ":bp<CR>")
-keymap.set("n", "<leader>n", ":bn<CR>")
-keymap.set("n", "<leader>x", ":bd<CR>")
-
--- Save with leader S
-keymap.set("n", "<Leader>s", ":update<CR>")
-
--- Edit vimrc configuration file
-keymap.set("n", "<Leader>ve", ":e $MYVIMRC<CR>")
--- Reload vimrc configuration file
-keymap.set("n", "<Leader>vr", ":source $MYVIMRC<CR>")
-
--- Edit Notes
-keymap.set("n", "<Leader>ww", ":e ~/Documents/Notes<CR>")
--- Shortcut for file explorer
-keymap.set("n", "<C-n>", ":NvimTreeToggle<CR>")
-
--- Open links
---keymap.set("n", "gx", ":!xdg-open <cWORD><cr>")
+-- File explorer
+keymap("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle file explorer" })

@@ -4,28 +4,29 @@ return {
 		"nvim-lua/plenary.nvim",
 		"nvim-treesitter/nvim-treesitter",
 	},
-	config = function()
-		require("codecompanion").setup({
-			adapters = {
-				ollama = function()
-					return require("codecompanion.adapters").extend("ollama", {
-						schema = {
-							model = {
-								default = "qwen3:30b-a3b",
-							},
-						},
-					})
-				end,
-			},
-			strategies = {
-				chat = {
-					adapter = "ollama",
+	keys = {
+		{
+			"<leader>ac",
+			"<cmd>CodeCompanionChat Toggle<CR>",
+			mode = { "n", "v" },
+			desc = "Toggle CodeCompanion chat",
+		},
+		{
+			"<leader>at",
+			"<cmd>CodeCompanionAction<CR>",
+			mode = { "n", "v" },
+			desc = "CodeCompanion action",
+		},
+	},
+	opts = {
+		strategies = {
+			chat = {
+				adapter = {
+					name = "ollama",
+					-- model = "qwen3:30b-a3b",
+					model = "deepseek-r1:14b",
 				},
-				inline = {
-					adapter = "ollama",
-				},
 			},
-		})
-		vim.keymap.set("n", "<leader>ac", ":CodeCompanionChat Toggle<CR>", { desc = "Toggle CodeCompanionChat" })
-	end,
+		},
+	},
 }

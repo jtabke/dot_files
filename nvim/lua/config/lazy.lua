@@ -1,5 +1,5 @@
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
 	vim.fn.system({
 		"git",
 		"clone",
@@ -12,8 +12,12 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 local opts = {
+	-- No current plugins require luarocks; disabling avoids hererocks health warnings.
+	rocks = {
+		enabled = false,
+	},
 	install = {
-		--    colorscheme = { "catppuccin" },
+		colorscheme = { "catppuccin" },
 	},
 }
 
