@@ -1,0 +1,22 @@
+{
+  "toolDescriptionMode": "compact",
+  "asyncByDefault": true,
+  "forceTopLevelAsync": false,
+  "globalConcurrencyLimit": 3,
+  "artifactDir": "session",
+  "maxSubagentDepth": 1,
+  "intercomBridge": {
+    "mode": "always"
+  },
+  "parallel": {
+    "concurrency": 3,
+    "maxTasks": 6
+  },
+  "completionBatch": {
+    "enabled": true
+  },
+  "control": {
+    "needsAttentionAfterMs": 300000,
+    "activeNoticeAfterMs": 600000
+  }
+}
