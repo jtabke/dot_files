@@ -1,60 +1,60 @@
 {
-  "lastChangelogVersion": "0.82.1",
+  "theme": "dark",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": true,
   "subagents": {
     "defaultModel": "openai-codex/gpt-5.6-luna",
-    "defaultThinking": "low",
+    "defaultThinking": "high",
     "agentOverrides": {
-      "context-builder": {
-        "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "medium"
-      },
       "scout": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "low"
+        "thinking": "high"
+      },
+      "context-builder": {
+        "model": "openai-codex/gpt-5.6-luna",
+        "thinking": "high"
       },
       "researcher": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "medium"
+        "thinking": "high"
       },
       "delegate": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "low"
-      },
-      "oracle": {
-        "model": "openai-codex/gpt-5.6-terra",
-        "thinking": "high"
-      },
-      "advisor": {
-        "model": "openai-codex/gpt-5.6-terra",
-        "thinking": "high"
-      },
-      "planner": {
-        "model": "openai-codex/gpt-5.6-terra",
-        "thinking": "high"
+        "thinking": "max"
       },
       "worker": {
-        "model": "openai-codex/gpt-5.6-terra",
-        "thinking": "medium"
+        "model": "openai-codex/gpt-5.6-luna",
+        "thinking": "max"
       },
       "reviewer": {
-        "model": "openai-codex/gpt-5.6-terra",
+        "model": "openai-codex/gpt-5.6-sol",
+        "thinking": "medium"
+      },
+      "planner": {
+        "model": "openai-codex/gpt-5.6-sol",
+        "thinking": "medium"
+      },
+      "oracle": {
+        "model": "openai-codex/gpt-5.6-sol",
+        "thinking": "medium"
+      },
+      "advisor": {
+        "model": "openai-codex/gpt-5.6-sol",
         "thinking": "medium"
       }
     }
   },
   "packages": [
-    "npm:context-mode",
-    "npm:pi-multi-pass",
-    "npm:pi-mcp-adapter",
     "npm:pi-subagents",
     "npm:pi-web-access",
-    "npm:pi-vim",
-    "npm:pi-sticky-input"
+    "npm:pi-mcp-adapter",
+    "npm:context-mode"
   ],
   "enableInstallTelemetry": false,
-  "theme": "dark"
+  "markdown": {
+    "mermaid": "streaming"
+  },
+  "tuiMode": "fullscreen"
 }

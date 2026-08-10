@@ -2,11 +2,17 @@
   "toolDescriptionMode": "compact",
   "asyncByDefault": true,
   "forceTopLevelAsync": false,
+  "waitTool": {
+    "enabled": true
+  },
+  "fleetView": true,
   "globalConcurrencyLimit": 3,
+  "maxSubagentSpawnsPerSession": 30,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
   "intercomBridge": {
-    "mode": "always"
+    "mode": "always",
+    "resultDelivery": false
   },
   "parallel": {
     "concurrency": 3,
@@ -16,7 +22,12 @@
     "enabled": true
   },
   "control": {
-    "needsAttentionAfterMs": 300000,
-    "activeNoticeAfterMs": 600000
+    "enabled": true,
+    "needsAttentionAfterMs": 90000,
+    "activeNoticeAfterMs": 180000,
+    "activeNoticeAfterTurns": 10,
+    "failedToolAttemptsBeforeAttention": 2,
+    "notifyOn": ["needs_attention", "active_long_running"],
+    "notifyChannels": ["event", "async", "intercom"]
   }
 }
