@@ -1,12 +1,13 @@
 {
   "toolDescriptionMode": "compact",
   "asyncByDefault": true,
-  "forceTopLevelAsync": false,
+  "forceTopLevelAsync": true,
   "waitTool": {
     "enabled": true
   },
   "fleetView": true,
   "globalConcurrencyLimit": 3,
+  "maxActiveAsyncRunsPerSession": 3,
   "maxSubagentSpawnsPerSession": 30,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
