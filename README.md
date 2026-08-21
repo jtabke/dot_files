@@ -18,7 +18,8 @@ This runs a scan on every commit that checks for:
 
 Portable Pi files use the home-relative path `~/.pi/agent/` and are stored here:
 `.pi/agent/AGENTS.md`, `.pi/agent/settings.json`,
-`.pi/agent/extensions/subagent/config.json`, and
+`.pi/agent/extensions/subagent/config.json`,
+`.pi/agent/prompts/subagent-*-contract.md`, and
 `.pi/agent/scripts/lint-subagent-sessions.mjs`.
 
 Portable Hyprland files use `~/.config/hypr/` and are stored here:
@@ -33,6 +34,9 @@ install -Dm644 .pi/agent/AGENTS.md "$HOME/.pi/agent/AGENTS.md"
 install -Dm644 .pi/agent/settings.json "$HOME/.pi/agent/settings.json"
 install -Dm644 .pi/agent/extensions/subagent/config.json \
   "$HOME/.pi/agent/extensions/subagent/config.json"
+for contract in .pi/agent/prompts/subagent-*-contract.md; do
+  install -Dm644 "$contract" "$HOME/.pi/agent/prompts/${contract##*/}"
+done
 install -Dm755 .pi/agent/scripts/lint-subagent-sessions.mjs \
   "$HOME/.pi/agent/scripts/lint-subagent-sessions.mjs"
 install -Dm644 .config/hypr/hyprland.lua "$HOME/.config/hypr/hyprland.lua"
