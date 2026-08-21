@@ -10,13 +10,16 @@
     "agentOverrides": {
       "scout": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "high",
-        "defaultContext": "fresh"
+        "thinking": "medium",
+        "defaultContext": "fresh",
+        "acceptanceRole": "read-only"
       },
       "researcher": {
         "model": "openai-codex/gpt-5.6-luna",
         "thinking": "xhigh",
-        "defaultContext": "fresh"
+        "defaultContext": "fresh",
+        "inheritProjectContext": false,
+        "acceptanceRole": "read-only"
       },
       "delegate": {
         "model": "openai-codex/gpt-5.6-luna",
@@ -25,18 +28,21 @@
       },
       "worker": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "xhigh",
-        "defaultContext": "fresh"
+        "thinking": "high",
+        "defaultContext": "fresh",
+        "acceptanceRole": "writer"
       },
       "reviewer": {
         "model": "openai-codex/gpt-5.6-sol",
         "thinking": "medium",
-        "defaultContext": "fresh"
+        "defaultContext": "fresh",
+        "acceptanceRole": "read-only"
       },
       "oracle": {
         "model": "openai-codex/gpt-5.6-sol",
         "thinking": "medium",
-        "defaultContext": "fork"
+        "defaultContext": "fork",
+        "acceptanceRole": "read-only"
       }
     }
   },
