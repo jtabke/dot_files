@@ -10,7 +10,8 @@
   "fleetView": true,
   "globalConcurrencyLimit": 3,
   "maxActiveAsyncRunsPerSession": 3,
-  "maxSubagentSpawnsPerSession": 30,
+  "maxSubagentSpawnsPerSession": 0,
+  "maxSubagentSpawnsPerRun": 24,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
   "intercomBridge": {

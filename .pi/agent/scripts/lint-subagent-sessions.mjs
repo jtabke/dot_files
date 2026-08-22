@@ -27,8 +27,9 @@ Options:
 Paths may be JSONL files or directories. Directories are searched recursively
 for *.jsonl files. If no paths are given, ~/.pi/agent/sessions is searched.
 Tool calls are deduplicated by their JSONL tool-call ID. Checks cover blocking
-waits, immediate post-wait status calls, action:"mission", detached workflow
-notices, output-path collision errors, and worker launches without effective
+waits, immediate post-wait status calls, action:"mission", unexpected detached
+workflow results, output-path collision errors, direct or foreground execution,
+spawn-budget grants, worker hard budgets, and worker launches without effective
 checked-or-stronger acceptance evidence. That acceptance must list changed-files,
 commands-run, residual-risks, validation-output, and no-staged-files. A
 workflow-level checked acceptance counts as the default for its child launches.
@@ -251,6 +252,7 @@ function workflowWorkerLaunches(workflowScript) {
       : [];
     launches.push({
       checked: hasCheckedOrStrongerLevel && hasRequiredWorkerEvidence(evidence),
+      hardBudget: /\b(?:turnBudget|toolBudget)\s*:/.test(objectText),
     });
   }
   return launches;
@@ -259,29 +261,47 @@ function workflowWorkerLaunches(workflowScript) {
 function inspectWorkerLaunch(record) {
   if (record.name !== "subagent") return;
   const args = record.arguments;
-  if (
-    args.agent === "worker" &&
-    !isCheckedOrStrongerAcceptance(args.acceptance)
-  ) {
-    addWarning(
-      "worker-acceptance",
-      record.id,
-      record.path,
-      record.line,
-      'worker launch has no checked-or-stronger acceptance; add acceptance.level="checked" or "verified" with the required evidence fields',
-    );
+  if (args.agent === "worker") {
+    if (!isCheckedOrStrongerAcceptance(args.acceptance)) {
+      addWarning(
+        "worker-acceptance",
+        record.id,
+        record.path,
+        record.line,
+        'worker launch has no checked-or-stronger acceptance; add acceptance.level="checked" or "verified" with the required evidence fields',
+      );
+    }
+    if (args.turnBudget || args.toolBudget) {
+      addWarning(
+        "worker-hard-budget",
+        record.id,
+        record.path,
+        record.line,
+        "mutation-capable worker has a hard turn/tool budget; rely on scoped work and runtime timeouts so it can return a complete checkpoint",
+      );
+    }
   }
   if (typeof args.workflowScript !== "string") return;
   const workflowAcceptance = isCheckedOrStrongerAcceptance(args.acceptance);
   workflowWorkerLaunches(args.workflowScript).forEach((launch, index) => {
-    if (launch.checked || workflowAcceptance) return;
-    addWarning(
-      "worker-acceptance",
-      `${record.id}:${index}`,
-      record.path,
-      record.line,
-      'workflow worker launch has no checked-or-stronger acceptance; pass acceptance.level="checked" or "verified" in the child launch',
-    );
+    if (!launch.checked && !workflowAcceptance) {
+      addWarning(
+        "worker-acceptance",
+        `${record.id}:${index}`,
+        record.path,
+        record.line,
+        'workflow worker launch has no checked-or-stronger acceptance; pass acceptance.level="checked" or "verified" in the child launch',
+      );
+    }
+    if (launch.hardBudget) {
+      addWarning(
+        "worker-hard-budget",
+        `${record.id}:${index}`,
+        record.path,
+        record.line,
+        "workflow worker has a hard turn/tool budget; rely on scoped work and runtime timeouts so it can return a complete checkpoint",
+      );
+    }
   });
 }
 
@@ -300,7 +320,37 @@ function inspectCall(record) {
   }
 
   if (record.name !== "subagent") return;
-  if (record.arguments.action === "mission") {
+  const args = record.arguments;
+  if (!args.action) {
+    if (typeof args.workflowScript !== "string") {
+      addWarning(
+        "direct-execution",
+        record.id,
+        record.path,
+        record.line,
+        "subagent execution bypasses workflowScript; use one stable-key workflow even for a single child",
+      );
+    }
+    if (args.async === false) {
+      addWarning(
+        "foreground-execution",
+        record.id,
+        record.path,
+        record.line,
+        "foreground subagent execution blocks the parent; launch async unless the parent itself must block",
+      );
+    }
+  }
+  if (args.action === "grant-spawn-budget") {
+    addWarning(
+      "spawn-budget-grant",
+      record.id,
+      record.path,
+      record.line,
+      "spawn-budget grant required user confirmation; prefer an unlimited session cap with bounded per-run fanout and concurrency",
+    );
+  }
+  if (args.action === "mission") {
     addWarning(
       "unsupported-mission-action",
       record.id,
@@ -323,6 +373,14 @@ function isSuccessfulWait(result) {
 function isDetachedWorkflowResult(result, call) {
   if (!call || call.name !== "subagent") return false;
   if (typeof call.arguments.workflowScript !== "string") return false;
+  const details = result.details;
+  const expectedOuterAsyncLaunch = Boolean(
+    call.arguments.async !== false &&
+      details?.asyncId &&
+      Array.isArray(details.results) &&
+      details.results.length === 0,
+  );
+  if (expectedOuterAsyncLaunch) return false;
   return (
     /\bdetached\b/i.test(result.text) &&
     /\b(?:async|workflow|child)\b/i.test(result.text)
