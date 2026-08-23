@@ -34,6 +34,7 @@ check test -f home/dot_zshenv
 check test -f home/dot_config/zsh/dot_zshrc
 check test -f home/dot_config/nvim/init.lua
 check test -f home/dot_config/nvim/lua/plugins/remove_avante.lua
+check_not jq -e 'has("avante.nvim") or has("llm.nvim")' home/dot_config/nvim/lazy-lock.json
 check test -f home/dot_config/nvim/lua/plugins/remove_llm.lua
 check test -f home/dot_config/nvim/lua/plugins/remove_nvim-ts-autotag.lua
 check test -f home/dot_config/nvim/after/ftplugin/remove_typescript.vim
@@ -71,6 +72,8 @@ check grep -qF 'command -v brew' home/run_onchange_install-packages.sh.tmpl
 check grep -qF '/opt/homebrew/bin/brew' home/run_onchange_install-packages.sh.tmpl
 check grep -qF '/usr/local/bin/brew' home/run_onchange_install-packages.sh.tmpl
 check grep -qF 'EUID == 0' home/run_onchange_install-packages.sh.tmpl
+check grep -qF 'minimumReleaseAge = 604800' home/dot_bunfig.toml
+check_not grep -qF 'minimumReleageAge' home/dot_bunfig.toml
 check grep -qF 'sudo failed while running Pacman' home/run_onchange_install-packages.sh.tmpl
 check test -f home/dot_config/kitty/symlink_theme.conf
 check test "$(cat home/dot_config/kitty/symlink_theme.conf)" = ./kitty-themes/Galaxy.conf
