@@ -1,2 +1,9 @@
+# Shared terminal behavior.
 desktop-notifications = true
-background-opacity = 0.90
+font-size = 9
+background-opacity = 0.8
+
+# Keep mouse selections, Neovim's + register, and the system clipboard aligned.
+copy-on-select = clipboard
+clipboard-read = deny
+clipboard-write = allow
