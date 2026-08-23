@@ -178,3 +178,13 @@ hl.window_rule({
 
     suppress_event = "maximize",
 })
+
+-- Optional machine-local hardware configuration. Chezmoi does not manage this
+-- file, so monitor and device settings can differ without forking this config.
+local localConfigPath = os.getenv("HOME") .. "/.config/hypr/hyprland.local.lua"
+local localConfig, localConfigError = loadfile(localConfigPath)
+if localConfig then
+    localConfig()
+elseif localConfigError and not localConfigError:match("No such file") then
+    error(localConfigError)
+end

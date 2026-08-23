@@ -76,6 +76,11 @@ The managed Git config includes an unmanaged
 `~/.config/git/user.inc`. Put personal `[user]` settings there; no identity is
 stored in this repository.
 
+Hyprland loads an optional unmanaged `~/.config/hypr/hyprland.local.lua` after
+the portable configuration. Keep monitor positions, device identifiers, and
+other host hardware there. `docs/hyprland-local.example.lua` preserves the
+current workstation settings as a starting point.
+
 ## Packages
 
 `home/run_onchange_install-packages.sh.tmpl` is opt-in. It checks commands

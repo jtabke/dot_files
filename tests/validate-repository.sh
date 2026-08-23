@@ -47,6 +47,9 @@ check grep -qF '.chezmoi.kernel.osrelease' home/.chezmoi.toml.tmpl
 check grep -qF '.chezmoi.kernel.osrelease' home/.chezmoiignore
 check grep -qF '.chezmoi.kernel.osrelease' home/dot_config/zsh/dot_zprofile.tmpl
 check grep -qF '.config/hypr' home/.chezmoiignore
+check grep -qF 'hyprland.local.lua' home/dot_config/hypr/hyprland.lua
+check test ! -e home/dot_config/hypr/hyprland.local.lua
+check test -f docs/hyprland-local.example.lua
 check test ! -d home/dot_config/awesome
 check grep -qF '.aerospace.toml' home/.chezmoiignore
 check grep -qF '.config/sketchybar' home/.chezmoiignore
