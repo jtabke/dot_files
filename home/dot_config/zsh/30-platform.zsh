@@ -34,6 +34,25 @@ fi
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
+
+# Restore GUI/session variables when the tmux server outlives the desktop
+# session. update-environment refreshes these values when clients attach.
+if [[ -n "${TMUX-}" ]]; then
+  for variable in WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS XDG_SESSION_TYPE; do
+    assignment=$(tmux show-environment -g "$variable" 2>/dev/null)
+    [[ "$assignment" == "$variable="* ]] && export "$assignment"
+  done
+  unset variable assignment
+fi
+
+export NVM_DIR="$HOME/.nvm"
+[[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+[[ -s "$NVM_DIR/bash_completion" ]] && source "$NVM_DIR/bash_completion"
+
+if [[ "$OSTYPE" == linux* ]] && command -v xdg-open >/dev/null 2>&1; then
+  alias open='xdg-open'
+fi
+
 [[ -r "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
 [[ -r "$HOME/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "$HOME/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 [[ -s "$HOME/.bun/_bun" ]] && source "$HOME/.bun/_bun"

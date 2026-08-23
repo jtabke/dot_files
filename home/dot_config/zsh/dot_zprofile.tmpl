@@ -12,7 +12,11 @@ export PI_CACHE_RETENTION=long
 {{- if and (eq .role "workstation") (eq .chezmoi.os "linux") (not $isWSL) (or (eq .desktop "auto") (eq .desktop "hyprland")) }}
 # Never start a graphical compositor in WSL. This block is rendered only for
 # native Linux Hyprland profiles.
-if [[ -z "${DISPLAY-}" && -z "${WAYLAND_DISPLAY-}" && "${XDG_VTNR-}" == 1 ]] && command -v Hyprland >/dev/null 2>&1; then
-  exec Hyprland
+if [[ -z "${DISPLAY-}" && -z "${WAYLAND_DISPLAY-}" && "${XDG_VTNR-}" == 1 ]]; then
+  if command -v start-hyprland >/dev/null 2>&1; then
+    exec start-hyprland
+  elif command -v Hyprland >/dev/null 2>&1; then
+    exec Hyprland
+  fi
 fi
 {{- end }}
