@@ -33,7 +33,7 @@ check test -f home/.chezmoiignore
 check test -f home/dot_zshenv
 check test -f home/dot_config/zsh/dot_zshrc
 check test -f home/dot_config/nvim/init.lua
-check test -f home/dot_vim/dot_vimrc
+check test ! -d home/dot_vim
 check test -f home/dot_pi/agent/settings.json
 check test -L .pi/agent
 check test "$(readlink .pi/agent)" = ../home/dot_pi/agent

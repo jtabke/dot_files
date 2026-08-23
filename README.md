@@ -20,7 +20,6 @@ configuration tree.
 │   ├── .chezmoiignore       # OS, WSL, role, and desktop selection
 │   ├── dot_config/          # installs as ~/.config/
 │   ├── dot_pi/              # installs as ~/.pi/
-│   ├── dot_vim/             # installs as ~/.vim/
 │   ├── dot_zshenv           # installs as ~/.zshenv
 │   └── run_onchange_*       # opt-in package bootstrap
 ├── .pi/agent -> ../home/dot_pi/agent
