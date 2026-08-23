@@ -1,0 +1,5 @@
+# Ordered zsh loader. Fragments stay small and can be profile-excluded later.
+[[ -o interactive ]] || return 0
+for fragment in "$ZDOTDIR"/[0-9][0-9]-*.zsh; do
+  [[ -r "$fragment" ]] && source "$fragment"
+done

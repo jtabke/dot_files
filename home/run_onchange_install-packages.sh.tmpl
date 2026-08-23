@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Opt-in package adapter. Rendering this file never installs packages.
+set -euo pipefail
+
+if [[ "{{ .installPackages }}" != "true" ]]; then
+  exit 0
+fi
+
+# Keep this list deliberately small. Each entry is package:command.
+packages=(
+  git:git
+  neovim:nvim
+  zsh:zsh
+  tmux:tmux
+  ripgrep:rg
+  fzf:fzf
+)
+missing=()
+for entry in "${packages[@]}"; do
+  package=${entry%%:*}
+  command_name=${entry##*:}
+  command -v "$command_name" >/dev/null 2>&1 || missing+=("$package")
+done
+if ((${#missing[@]} == 0)); then
+  echo "chezmoi: all configured packages are already installed"
+  exit 0
+fi
+
+brew_bin=""
+if command -v brew >/dev/null 2>&1; then
+  brew_bin=$(command -v brew)
+else
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [[ -x "$candidate" ]]; then
+      brew_bin=$candidate
+      break
+    fi
+  done
+fi
+
+manager=""
+case "{{ .chezmoi.os }}" in
+  darwin)
+    [[ -n "$brew_bin" ]] && manager=brew
+    ;;
+  linux)
+    # Prefer the chezmoi osRelease distro, then use command availability.
+    case "{{ .osReleaseID }}" in
+      arch|manjaro|endeavouros)
+        command -v pacman >/dev/null 2>&1 && manager=pacman
+        ;;
+      debian|ubuntu|linuxmint|pop)
+        command -v apt-get >/dev/null 2>&1 && manager=apt
+        ;;
+    esac
+    if [[ -z "$manager" ]] && command -v pacman >/dev/null 2>&1; then
+      manager=pacman
+    elif [[ -z "$manager" ]] && command -v apt-get >/dev/null 2>&1; then
+      manager=apt
+    elif [[ -z "$manager" && -n "$brew_bin" ]]; then
+      manager=brew
+    fi
+    ;;
+  *)
+    ;;
+esac
+if [[ -z "$manager" ]]; then
+  echo "chezmoi: package installation is enabled, but no supported Brew, Pacman, or APT adapter is available" >&2
+  exit 1
+fi
+
+echo "chezmoi: installing missing packages with $manager: ${missing[*]}"
+case "$manager" in
+  brew)
+    "$brew_bin" install "${missing[@]}"
+    ;;
+  pacman)
+    if ((EUID == 0)); then
+      pacman -S --needed -- "${missing[@]}"
+    elif command -v sudo >/dev/null 2>&1; then
+      if ! sudo pacman -S --needed -- "${missing[@]}"; then
+        echo "chezmoi: sudo failed while running Pacman; run as root or fix sudo access" >&2
+        exit 1
+      fi
+    else
+      echo "chezmoi: Pacman requires root or sudo to install packages" >&2
+      exit 1
+    fi
+    ;;
+  apt)
+    if ((EUID == 0)); then
+      apt-get install -y --no-install-recommends "${missing[@]}"
+    elif command -v sudo >/dev/null 2>&1; then
+      if ! sudo apt-get install -y --no-install-recommends "${missing[@]}"; then
+        echo "chezmoi: sudo failed while running APT; run as root or fix sudo access" >&2
+        exit 1
+      fi
+    else
+      echo "chezmoi: APT requires root or sudo to install packages" >&2
+      exit 1
+    fi
+    ;;
+esac

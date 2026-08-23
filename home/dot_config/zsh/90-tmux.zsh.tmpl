@@ -1,0 +1,6 @@
+# tmux takeover is opt-in and limited to local interactive terminals.
+{{- if and .autoTmux (eq .role "workstation") }}
+if [[ -o interactive && -t 1 && -z "${TMUX-}" && -z "${SSH_CONNECTION-}" && -z "${CI-}" ]] && command -v tmux >/dev/null 2>&1; then
+  exec tmux new-session -A -s default
+fi
+{{- end }}

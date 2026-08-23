@@ -1,0 +1,18 @@
+# .zshenv is sourced by every zsh invocation. Keep it side-effect-light.
+export ZDOTDIR="$HOME/.config/zsh"
+export EDITOR="nvim"
+export BROWSER="firefox"
+export TERMINAL="ghostty"
+typeset -U path PATH
+for directory in \
+  "$HOME/.npm-global/bin" \
+  "$HOME/.opencode/bin" \
+  "$HOME/.bun/bin" \
+  "$HOME/.local/share/nvim/mason/bin" \
+  "$HOME/.local/bin"; do
+  [[ -d "$directory" ]] && path=("$directory" $path)
+done
+[[ -d /opt/rocm/bin ]] && path+=(/opt/rocm/bin)
+unset directory
+export NEXT_TELEMETRY_DISABLED=1
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
