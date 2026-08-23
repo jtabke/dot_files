@@ -33,6 +33,11 @@ check test -f home/.chezmoiignore
 check test -f home/dot_zshenv
 check test -f home/dot_config/zsh/dot_zshrc
 check test -f home/dot_config/nvim/init.lua
+check test -f home/dot_config/nvim/lua/plugins/remove_avante.lua
+check test -f home/dot_config/nvim/lua/plugins/remove_llm.lua
+check test -f home/dot_config/nvim/lua/plugins/remove_nvim-ts-autotag.lua
+check test -f home/dot_config/nvim/after/ftplugin/remove_typescript.vim
+check test -f home/dot_config/nvim/after/ftplugin/remove_python.vim.bak
 check test ! -d home/dot_vim
 check test -f home/dot_pi/agent/settings.json
 check test -L .pi/agent
@@ -131,6 +136,14 @@ run_profile() {
     fail "$name prompt answers persist"
   fi
 
+  # Seed obsolete files to prove remove_ source attributes converge an existing home.
+  mkdir -p "$dest/.config/nvim/lua/plugins" "$dest/.config/nvim/after/ftplugin"
+  touch "$dest/.config/nvim/lua/plugins/avante.lua" \
+    "$dest/.config/nvim/lua/plugins/llm.lua" \
+    "$dest/.config/nvim/lua/plugins/nvim-ts-autotag.lua" \
+    "$dest/.config/nvim/after/ftplugin/typescript.vim" \
+    "$dest/.config/nvim/after/ftplugin/python.vim.bak"
+
   dry=$(chezmoi --source "$repo" --destination "$dest" --cache "$cache" \
     --config "$config" --persistent-state "$state" --no-tty --dry-run --verbose apply)
   if [[ "$role" == workstation && ("$desktop" == auto || "$desktop" == hyprland) ]]; then
@@ -155,6 +168,11 @@ run_profile() {
 
   check test -f "$dest/.zshenv"
   check test -f "$dest/.config/nvim/init.lua"
+  check_not test -e "$dest/.config/nvim/lua/plugins/avante.lua"
+  check_not test -e "$dest/.config/nvim/lua/plugins/llm.lua"
+  check_not test -e "$dest/.config/nvim/lua/plugins/nvim-ts-autotag.lua"
+  check_not test -e "$dest/.config/nvim/after/ftplugin/typescript.vim"
+  check_not test -e "$dest/.config/nvim/after/ftplugin/python.vim.bak"
   check test -f "$dest/.pi/agent/settings.json"
   check test -x "$dest/.pi/agent/scripts/lint-subagent-sessions.mjs"
   check test -L "$dest/.config/kitty/theme.conf"
