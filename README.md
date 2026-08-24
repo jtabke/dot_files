@@ -59,7 +59,7 @@ Project documentation, tests, hooks, and Git metadata cannot be installed into
 │   ├── dot_tmux.conf            # installs as ~/.tmux.conf
 │   ├── dot_zshenv               # installs as ~/.zshenv
 │   └── run_onchange_*           # opt-in package adapter
-├── .pi/agent -> ../home/dot_pi/agent
+├── .pi/agent -> ../home/dot_pi/private_agent
 ├── docs/
 ├── hooks/
 └── tests/
@@ -68,10 +68,16 @@ Project documentation, tests, hooks, and Git metadata cannot be installed into
 Chezmoi source names encode target attributes:
 
 - `dot_foo` becomes `.foo`.
+- `private_foo` removes group and world permissions.
 - `executable_foo` installs with executable mode.
 - `symlink_foo` creates a symlink.
 - `foo.tmpl` is rendered as a template.
 - `remove_foo` removes an obsolete target during apply.
+
+The Pi agent source uses `private_agent`, so `~/.pi/agent` is mode `0700`.
+Its `modify_settings.json` applies the baseline in `.chezmoitemplates/pi-settings.json`
+while preserving Pi's runtime-managed top-level `lastChangelogVersion` when it
+already exists. The settings target remains a non-executable JSON file.
 
 Use `chezmoi source-path TARGET` when the encoded source path is unclear.
 

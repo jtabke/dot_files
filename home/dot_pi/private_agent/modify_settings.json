@@ -1,0 +1,9 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $baseline := includeTemplate "pi-settings.json" . | fromJson -}}
+{{- if .chezmoi.stdin -}}
+{{- $current := fromJson .chezmoi.stdin -}}
+{{- if hasKey $current "lastChangelogVersion" -}}
+{{- $baseline = setValueAtPath "lastChangelogVersion" (index $current "lastChangelogVersion") $baseline -}}
+{{- end -}}
+{{- end -}}
+{{ $baseline | toPrettyJson }}

@@ -33,17 +33,26 @@ check test -f home/.chezmoiignore
 check test -f home/dot_zshenv
 check test -f home/dot_config/zsh/dot_zshrc
 check test -f home/dot_config/nvim/init.lua
+check test -f home/private_dot_npmrc
+check test ! -e home/dot_npmrc
+check grep -qF 'min-release-age=3' home/private_dot_npmrc
+check grep -qF 'ignore-scripts=false' home/private_dot_npmrc
 check test -f home/dot_config/nvim/lua/plugins/remove_avante.lua
 check_not jq -e 'has("avante.nvim") or has("llm.nvim")' home/dot_config/nvim/lazy-lock.json
+check test -f home/dot_config/nvim/lua/plugins/remove_codecompanion.lua
+check test ! -s home/dot_config/nvim/lua/plugins/remove_codecompanion.lua
+check_not jq -e 'has("codecompanion.nvim")' home/dot_config/nvim/lazy-lock.json
 check test -f home/dot_config/nvim/lua/plugins/remove_llm.lua
 check test -f home/dot_config/nvim/lua/plugins/remove_nvim-ts-autotag.lua
 check test -f home/dot_config/nvim/after/ftplugin/remove_typescript.vim
 check test -f home/dot_config/nvim/after/ftplugin/remove_python.vim.bak
 check test ! -d home/dot_vim
-check test -f home/dot_pi/agent/settings.json
+check test -f home/.chezmoitemplates/pi-settings.json
+check test -f home/dot_pi/private_agent/modify_settings.json
+check_not test -x home/dot_pi/private_agent/modify_settings.json
 check test -L .pi/agent
-check test "$(readlink .pi/agent)" = ../home/dot_pi/agent
-check test -f .pi/agent/settings.json
+check test "$(readlink .pi/agent)" = ../home/dot_pi/private_agent
+check test -f .pi/agent/AGENTS.md
 check grep -qF 'promptChoiceOnce . "role" "Machine role"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptChoiceOnce . "desktop" "Desktop environment"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptBoolOnce . "installPackages" "Install missing packages during apply?"' home/.chezmoi.toml.tmpl
@@ -90,12 +99,21 @@ check test -f home/dot_config/kitty/symlink_theme.conf
 check test "$(cat home/dot_config/kitty/symlink_theme.conf)" = ./kitty-themes/Galaxy.conf
 check test ! -e home/dot_config/kitty/theme.conf
 
-for file in home/dot_pi/agent/scripts/executable_lint-subagent-sessions.mjs \
+for file in home/dot_pi/private_agent/scripts/executable_lint-subagent-sessions.mjs \
   home/dot_config/sketchybar/executable_sketchybarrc \
   home/dot_config/sketchybar/plugins/executable_*.sh; do
   check test -x "$file"
 done
 check test -x hooks/pre-commit
+
+pi_agent_mode() {
+  if [[ "$(uname -s)" == Darwin ]]; then
+    stat -f '%Lp' "$1"
+  else
+    stat -c '%a' "$1"
+  fi
+}
+check test "$(pi_agent_mode home/dot_pi/private_agent/modify_settings.json)" = 644
 
 check_no_likely_secrets() {
   ! grep -RInE '\$(USERNAME|EMAIL)|AKIA[0-9A-Z]{16}|BEGIN .*PRIVATE KEY' \
@@ -127,7 +145,8 @@ check check_non_zle_zsh_startup
 # Parse JSON and TOML with installed standard tools.
 while IFS= read -r -d '' file; do
   check jq empty "$file"
-done < <(find home . -path './.git' -prune -o -name '*.json' -print0)
+done < <(find home . -path './.git' -prune -o -name '*.json' \
+  ! -name 'modify_*.json' -print0)
 while IFS= read -r -d '' file; do
   check python3 -c 'import sys,tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$file"
 done < <(find home . -path './.git' -prune -o -name '*.toml' -print0)
@@ -155,7 +174,7 @@ check_kernel_classification 'ordinary kernel is not WSL' false \
 
 run_profile() {
   local name=$1 role=$2 desktop=$3
-  local tmp dest cache config state dry second chezmoi_os is_wsl
+  local tmp dest baseline_dest cache config state dry second chezmoi_os is_wsl
   local expected_hyprland=false expected_aerospace=false expected_sketchybar=false
   tmp=$(mktemp -d)
   dest=$tmp/destination
@@ -203,10 +222,34 @@ run_profile() {
     fail "$name prompt answers persist"
   fi
 
-  # Seed obsolete files to prove remove_ source attributes converge an existing home.
-  mkdir -p "$dest/.config/nvim/lua/plugins" "$dest/.config/nvim/after/ftplugin"
+  # Apply once without a pre-existing Pi target to prove the baseline does not
+  # invent the runtime-owned changelog version. Use a separate destination so
+  # the main dry-run still previews the complete profile before seeded apply.
+  baseline_dest=$tmp/baseline-destination
+  mkdir -p "$baseline_dest"
+  chezmoi --source "$repo" --destination "$baseline_dest" --cache "$cache" \
+    --config "$config" --persistent-state "$state" --no-tty --force apply \
+    >"$tmp/baseline.out" 2>"$tmp/baseline.err" || {
+      cat "$tmp/baseline.out" "$tmp/baseline.err" >&2
+      fail "$name baseline apply"
+      rm -rf "$tmp"
+      return
+    }
+  check test -f "$baseline_dest/.pi/agent/settings.json"
+  check test "$(pi_agent_mode "$baseline_dest/.pi/agent")" = 700
+  check jq -e --slurpfile baseline home/.chezmoitemplates/pi-settings.json \
+    '.theme == $baseline[0].theme and .defaultProvider == $baseline[0].defaultProvider and .subagents.defaultModel == $baseline[0].subagents.defaultModel and .tuiMode == $baseline[0].tuiMode and (has("lastChangelogVersion") | not)' \
+    "$baseline_dest/.pi/agent/settings.json"
+
+  # Seed obsolete files and Pi runtime state to prove source attributes converge
+  # an existing home without overwriting the runtime-owned changelog version.
+  mkdir -p "$dest/.config/nvim/lua/plugins" "$dest/.config/nvim/after/ftplugin" \
+    "$dest/.pi/agent"
+  printf '%s\n' '{"lastChangelogVersion":"validation-sentinel","theme":"runtime-value"}' \
+    >"$dest/.pi/agent/settings.json"
   touch "$dest/.aerospace.toml" \
     "$dest/.config/nvim/lua/plugins/avante.lua" \
+    "$dest/.config/nvim/lua/plugins/codecompanion.lua" \
     "$dest/.config/nvim/lua/plugins/llm.lua" \
     "$dest/.config/nvim/lua/plugins/nvim-ts-autotag.lua" \
     "$dest/.config/nvim/after/ftplugin/typescript.vim" \
@@ -244,6 +287,10 @@ run_profile() {
 
   check test -f "$dest/.zshenv"
   check test -f "$dest/.config/nvim/init.lua"
+  check test -f "$dest/.npmrc"
+  check grep -qF 'min-release-age=3' "$dest/.npmrc"
+  check grep -qF 'ignore-scripts=false' "$dest/.npmrc"
+  check test "$(pi_agent_mode "$dest/.npmrc")" = 600
   check_not test -e "$dest/.aerospace.toml"
   if [[ "$expected_hyprland" == true ]]; then
     check test -f "$dest/.config/hypr/hyprland.lua"
@@ -261,11 +308,20 @@ run_profile() {
     check_not test -e "$dest/.config/sketchybar"
   fi
   check_not test -e "$dest/.config/nvim/lua/plugins/avante.lua"
+  check_not test -e "$dest/.config/nvim/lua/plugins/codecompanion.lua"
   check_not test -e "$dest/.config/nvim/lua/plugins/llm.lua"
   check_not test -e "$dest/.config/nvim/lua/plugins/nvim-ts-autotag.lua"
   check_not test -e "$dest/.config/nvim/after/ftplugin/typescript.vim"
   check_not test -e "$dest/.config/nvim/after/ftplugin/python.vim.bak"
   check test -f "$dest/.pi/agent/settings.json"
+  check test "$(pi_agent_mode "$dest/.pi/agent")" = 700
+  check_not test -x "$dest/.pi/agent/settings.json"
+  check jq -e '.lastChangelogVersion == "validation-sentinel"' \
+    "$dest/.pi/agent/settings.json"
+  check jq empty "$dest/.pi/agent/settings.json"
+  check jq -e --slurpfile baseline home/.chezmoitemplates/pi-settings.json \
+    '.theme == $baseline[0].theme and .defaultProvider == $baseline[0].defaultProvider and .subagents.defaultModel == $baseline[0].subagents.defaultModel and .tuiMode == $baseline[0].tuiMode' \
+    "$dest/.pi/agent/settings.json"
   check test -x "$dest/.pi/agent/scripts/lint-subagent-sessions.mjs"
   check test -L "$dest/.config/kitty/theme.conf"
   check test "$(readlink "$dest/.config/kitty/theme.conf")" = ./kitty-themes/Galaxy.conf

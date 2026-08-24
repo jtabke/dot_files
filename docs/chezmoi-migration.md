@@ -7,7 +7,7 @@ therefore reads only `home/` as source state. The root keeps project material
 outside that source root:
 
 - `README.md`, `docs/`, `hooks/`, and `tests/` are repository files.
-- `.pi/agent` is a tracked directory symlink to `home/dot_pi/agent`.
+- `.pi/agent` is a tracked directory symlink to `home/dot_pi/private_agent`.
 - `home/.chezmoi.toml.tmpl`, `home/.chezmoiignore`, managed `dot_*` entries,
   and run scripts are the chezmoi state.
 

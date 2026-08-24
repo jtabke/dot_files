@@ -328,8 +328,8 @@
 │   ├── dot_zshenv
 │   ├── dot_config/                 # zsh, nvim, Kitty, and desktop trees
 │   │   └── aerospace/aerospace.toml # macOS profile only
-│   └── dot_pi/agent/               # one managed Pi tree
-├── .pi/agent -> home/dot_pi/agent  # project metadata link
+│   └── dot_pi/private_agent/       # private managed Pi tree
+├── .pi/agent -> ../home/dot_pi/private_agent # project metadata link
 └── docs/</pre>
         <div class="callout"><strong>Important constraint:</strong> templates are a scalpel, not the default. Prefer whole-file profile selection and sourced fragments over conditionals scattered through large config files.</div>
       </div>
