@@ -29,7 +29,7 @@ The prompt owner is `home/.chezmoi.toml.tmpl`. It uses the exact once-only
 functions `promptChoiceOnce . "role" "Machine role" (list "workstation" "shell")`,
 `promptChoiceOnce . "desktop" "Desktop environment" (list "auto" "hyprland" "aerospace" "none")`,
 `promptBoolOnce . "installPackages" "Install missing packages during apply?"`, and
-`promptBoolOnce . "autoTmux" "Automatically attach local interactive shells to tmux?"`.
+`promptBoolOnce . "autoTmux" "Automatically attach interactive shells to tmux?"`.
 Choose `workstation`, `auto`, `false`, and `false` for the standard workstation
 profile. The generated config stores the answers and derived public platform facts. There is no duplicate static
 profile data file.

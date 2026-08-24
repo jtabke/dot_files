@@ -215,7 +215,7 @@ numbered fragments in order:
 ```text
 10-portable.zsh  -> portable key bindings and shell behavior
 30-platform.zsh  -> completion, tools, aliases, and platform integrations
-90-tmux.zsh      -> optional local tmux attachment
+90-tmux.zsh      -> optional local and SSH tmux attachment
 ```
 
 fzf bindings load only when Zsh Line Editor (ZLE) is active in a real terminal.
@@ -223,7 +223,8 @@ This avoids `can't change option: zle` warnings from non-terminal health checks
 such as `zsh -lic`.
 
 Automatic tmux attachment requires `autoTmux=true` and excludes existing tmux
-sessions, SSH sessions, continuous integration, and non-terminal shells.
+sessions, continuous integration, and non-terminal shells. It applies to local
+and SSH interactive sessions. Leaving tmux returns to the outer shell.
 
 ## Hyprland safeguards
 

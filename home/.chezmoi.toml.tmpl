@@ -1,7 +1,7 @@
 {{- $role := promptChoiceOnce . "role" "Machine role" (list "workstation" "shell") -}}
 {{- $desktop := promptChoiceOnce . "desktop" "Desktop environment" (list "auto" "hyprland" "aerospace" "none") -}}
 {{- $installPackages := promptBoolOnce . "installPackages" "Install missing packages during apply?" -}}
-{{- $autoTmux := promptBoolOnce . "autoTmux" "Automatically attach local interactive shells to tmux?" -}}
+{{- $autoTmux := promptBoolOnce . "autoTmux" "Automatically attach interactive shells to tmux?" -}}
 {{- $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) -}}
 {{- $isWSL := or (contains "microsoft" $kernel) (contains "wsl" $kernel) -}}
 {{- $osReleaseID := lower (default "" (index .chezmoi.osRelease "id")) -}}

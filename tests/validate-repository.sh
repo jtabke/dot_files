@@ -56,7 +56,7 @@ check test -f .pi/agent/AGENTS.md
 check grep -qF 'promptChoiceOnce . "role" "Machine role"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptChoiceOnce . "desktop" "Desktop environment"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptBoolOnce . "installPackages" "Install missing packages during apply?"' home/.chezmoi.toml.tmpl
-check grep -qF 'promptBoolOnce . "autoTmux" "Automatically attach local interactive shells to tmux?"' home/.chezmoi.toml.tmpl
+check grep -qF 'promptBoolOnce . "autoTmux" "Automatically attach interactive shells to tmux?"' home/.chezmoi.toml.tmpl
 check_not grep -RIn -F '.chezmoi.kernel.osrelease' home
 check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/.chezmoi.toml.tmpl
 check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/.chezmoiignore
@@ -86,7 +86,9 @@ check_not grep -qF 'docs/' home/.chezmoiignore
 check_not grep -qF 'tests/' home/.chezmoiignore
 check_not grep -qF 'AGENTS.md' home/.chezmoiignore
 check grep -qF 'autoTmux' home/dot_config/zsh/90-tmux.zsh.tmpl
-check grep -qF 'SSH_CONNECTION' home/dot_config/zsh/90-tmux.zsh.tmpl
+check_not grep -qF 'SSH_CONNECTION' home/dot_config/zsh/90-tmux.zsh.tmpl
+check grep -qF 'tmux new-session -A -s default' home/dot_config/zsh/90-tmux.zsh.tmpl
+check_not grep -qF 'exec tmux' home/dot_config/zsh/90-tmux.zsh.tmpl
 check grep -qF 'path = ~/.config/git/user.inc' home/dot_gitconfig.tmpl
 check grep -qF 'command -v brew' home/run_onchange_install-packages.sh.tmpl
 check grep -qF '/opt/homebrew/bin/brew' home/run_onchange_install-packages.sh.tmpl
