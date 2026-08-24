@@ -10,9 +10,12 @@ export PI_CACHE_RETENTION=long
 {{- $kernel := lower .chezmoi.kernel.osrelease -}}
 {{- $isWSL := or (contains $kernel "microsoft") (contains $kernel "wsl") -}}
 {{- if and (eq .role "workstation") (eq .chezmoi.os "linux") (not $isWSL) (or (eq .desktop "auto") (eq .desktop "hyprland")) }}
-# Never start a graphical compositor in WSL. This block is rendered only for
-# native Linux Hyprland profiles.
-if [[ -z "${DISPLAY-}" && -z "${WAYLAND_DISPLAY-}" && "${XDG_VTNR-}" == 1 ]]; then
+# Never start a compositor from tmux, SSH, a pseudo-terminal, or WSL. This
+# block is rendered only for native Linux Hyprland workstation profiles.
+if [[ -z "${TMUX-}" && -z "${SSH_CONNECTION-}" && -z "${SSH_TTY-}" \
+  && -z "${DISPLAY-}" && -z "${WAYLAND_DISPLAY-}" \
+  && "${XDG_VTNR-}" == 1 && -t 0 && -t 1 \
+  && "$(tty 2>/dev/null)" == /dev/tty1 ]]; then
   if command -v start-hyprland >/dev/null 2>&1; then
     exec start-hyprland
   elif command -v Hyprland >/dev/null 2>&1; then

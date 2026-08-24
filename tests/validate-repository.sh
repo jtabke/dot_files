@@ -52,6 +52,11 @@ check_not grep -RIn --exclude-dir=.git -E '\.chezmoi\.kernel([^.]|$)' .
 check grep -qF '.chezmoi.kernel.osrelease' home/.chezmoi.toml.tmpl
 check grep -qF '.chezmoi.kernel.osrelease' home/.chezmoiignore
 check grep -qF '.chezmoi.kernel.osrelease' home/dot_config/zsh/dot_zprofile.tmpl
+check grep -qF -- '-z "${TMUX-}"' home/dot_config/zsh/dot_zprofile.tmpl
+check grep -qF -- '-z "${SSH_CONNECTION-}"' home/dot_config/zsh/dot_zprofile.tmpl
+check grep -qF -- '-z "${SSH_TTY-}"' home/dot_config/zsh/dot_zprofile.tmpl
+check grep -qF '"$(tty 2>/dev/null)" == /dev/tty1' home/dot_config/zsh/dot_zprofile.tmpl
+check grep -qF '[[ -o zle && -z "${ZSH_EXECUTION_STRING-}" ]]' home/dot_config/zsh/30-platform.zsh
 check grep -qF '.config/hypr' home/.chezmoiignore
 check grep -qF 'hyprland.local.lua' home/dot_config/hypr/hyprland.lua
 check test ! -e home/dot_config/hypr/hyprland.local.lua
@@ -91,6 +96,27 @@ check_no_likely_secrets() {
     --exclude-dir=.git --exclude-dir=hooks --exclude='validate-repository.sh' .
 }
 check check_no_likely_secrets
+
+check_non_zle_zsh_startup() {
+  local tmp output
+  tmp=$(mktemp -d)
+  mkdir -p "$tmp/.cache/zsh"
+  if ! HOME="$tmp" ZDOTDIR="$tmp" DOTFILES_REPO="$repo" zsh -f -ic \
+    'source "$DOTFILES_REPO/home/dot_config/zsh/30-platform.zsh"; print -r -- NON_ZLE_STARTUP_OK' \
+    >"$tmp/stdout" 2>"$tmp/stderr"; then
+    cat "$tmp/stdout" "$tmp/stderr" >&2
+    rm -rf "$tmp"
+    return 1
+  fi
+  output=$(<"$tmp/stdout")
+  if [[ "$output" != NON_ZLE_STARTUP_OK || -s "$tmp/stderr" ]]; then
+    cat "$tmp/stdout" "$tmp/stderr" >&2
+    rm -rf "$tmp"
+    return 1
+  fi
+  rm -rf "$tmp"
+}
+check check_non_zle_zsh_startup
 
 # Parse JSON and TOML with installed standard tools.
 while IFS= read -r -d '' file; do
@@ -195,6 +221,9 @@ run_profile() {
   done < <(find "$dest" -name '*.toml' -print0)
   if [[ "$role" == workstation && ("$desktop" == auto || "$desktop" == hyprland) ]]; then
     check grep -qF 'exec Hyprland' "$dest/.config/zsh/.zprofile"
+    check grep -qF -- '-z "${TMUX-}"' "$dest/.config/zsh/.zprofile"
+    check grep -qF -- '-z "${SSH_CONNECTION-}"' "$dest/.config/zsh/.zprofile"
+    check grep -qF '"$(tty 2>/dev/null)" == /dev/tty1' "$dest/.config/zsh/.zprofile"
   else
     check_not grep -qF 'exec Hyprland' "$dest/.config/zsh/.zprofile"
   fi

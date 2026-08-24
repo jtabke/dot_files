@@ -27,7 +27,9 @@ else
 fi
 function chpwd { emulate -L zsh; ls -a }
 
-if command -v fzf >/dev/null 2>&1; then
+# fzf's generated bindings restore the immutable ZLE option. Load them only
+# for a prompt-driven terminal, not for command-mode `zsh -ic` health checks.
+if [[ -o zle && -z "${ZSH_EXECUTION_STRING-}" ]] && command -v fzf >/dev/null 2>&1; then
   export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --glob "!.git/*"'
   source <(fzf --zsh)
 fi
