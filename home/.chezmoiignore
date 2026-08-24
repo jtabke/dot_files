@@ -1,5 +1,5 @@
-{{- $kernel := lower .chezmoi.kernel.osrelease -}}
-{{- $isWSL := or (contains $kernel "microsoft") (contains $kernel "wsl") -}}
+{{- $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) -}}
+{{- $isWSL := or (contains "microsoft" $kernel) (contains "wsl" $kernel) -}}
 {{- $nativeLinux := and (eq .chezmoi.os "linux") (not $isWSL) -}}
 {{- $useHyprland := and $nativeLinux (eq .role "workstation") (or (eq .desktop "auto") (eq .desktop "hyprland")) -}}
 {{- $useAerospace := and (eq .chezmoi.os "darwin") (eq .role "workstation") (or (eq .desktop "auto") (eq .desktop "aerospace")) -}}
@@ -7,6 +7,6 @@
 .config/hypr
 {{- end }}
 {{- if not $useAerospace }}
-.aerospace.toml
+.config/aerospace
 .config/sketchybar
 {{- end }}

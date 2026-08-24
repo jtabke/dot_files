@@ -173,7 +173,7 @@
           <article class="card">
             <div class="number">01</div>
             <h3>Mixed destinations</h3>
-            <p>Root dotfiles, XDG trees, app folders, and special paths such as <code>~/.aerospace.toml</code> coexist without one mapping.</p>
+            <p>Root dotfiles, XDG trees, app folders, and special paths such as <code>~/.config/aerospace/aerospace.toml</code> coexist without one mapping.</p>
           </article>
           <article class="card">
             <div class="number">02</div>
@@ -327,7 +327,7 @@
 │   ├── run_onchange_install-packages.sh.tmpl
 │   ├── dot_zshenv
 │   ├── dot_config/                 # zsh, nvim, Kitty, and desktop trees
-│   ├── dot_aerospace.toml          # macOS profile only
+│   │   └── aerospace/aerospace.toml # macOS profile only
 │   └── dot_pi/agent/               # one managed Pi tree
 ├── .pi/agent -> home/dot_pi/agent  # project metadata link
 └── docs/</pre>

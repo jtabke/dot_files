@@ -1,5 +1,5 @@
-# Place a copy of this config to ~/.aerospace.toml
-# After that, you can edit ~/.aerospace.toml to your liking
+# Place a copy of this config to ~/.config/aerospace/aerospace.toml
+# After that, you can edit ~/.config/aerospace/aerospace.toml to your liking
 
 config-version = 2
 
@@ -9,15 +9,13 @@ start-at-login = true
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands: https://nikitabobko.github.io/AeroSpace/commands
 
-# Run Sketchybar together with AeroSpace
-# sketchbar has a built-in detection of already running process,
-# so it won't be run twice on AeroSpace restart
-after-startup-command = ['exec-and-forget sketchybar']
+# SketchyBar disabled: use the native macOS menu bar instead.
+# after-startup-command = ['exec-and-forget /bin/bash -lc "sketchybar --reload || sketchybar"']
 
-# Notify Sketchybar about workspace change
-exec-on-workspace-change = ['/bin/bash', '-c',
-    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
-]
+# SketchyBar disabled: no workspace-change trigger needed.
+# exec-on-workspace-change = ['/bin/bash', '-c',
+#     'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
+# ]
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
 enable-normalization-flatten-containers = true
@@ -47,18 +45,37 @@ on-focus-changed = ['move-mouse window-lazy-center']
 # Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
 automatically-unhide-macos-hidden-apps = false
 
-# Pin workspaces to monitors
-# Monitor 1 = external (left), Monitor 2 = external (right/main), Monitor 3 = built-in
+# Pin workspaces to monitors.
+# Two external monitor setup, laptop unplugged/closed:
+#   1-3  -> main external display
+#   4-6  -> secondary/left external display
+#   7-10 -> built-in display when available, otherwise main external
+#
+# Human workspace map:
+#   1 main/web
+#   2 dev/terminal
+#   3 code/editor
+#   4 comms/notes
+#   5 messages
+#   6 email/calendar
+#   7 laptop-main
+#   8 laptop-dev
+#   9 laptop-misc
+#   10 scratch/overflow
+#
+# AeroSpace monitor patterns are left-to-right numbers, 'main', 'secondary',
+# or case-insensitive monitor-name regexes. Arrays use the first available match.
 [workspace-to-monitor-force-assignment]
 1 = 'main'
 2 = 'main'
 3 = 'main'
-4 = 1
-5 = 1
-6 = 1
-7 = 3
-8 = 3
-9 = 3
+4 = ['secondary', 1, 'main']
+5 = ['secondary', 1, 'main']
+6 = ['secondary', 1, 'main']
+7 = ['built-in', 'main']
+8 = ['built-in', 'main']
+9 = ['built-in', 'main']
+10 = ['built-in', 'main']
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
@@ -78,7 +95,8 @@ automatically-unhide-macos-hidden-apps = false
     inner.vertical =   0
     outer.left =       0
     outer.bottom =     0
-    outer.top =        [{ monitor.'built-in' = 0 }, 40]
+    # SketchyBar is disabled, so don't reserve a 40px top strip on external monitors.
+    outer.top =        0
     outer.right =      0
 
 # 'main' binding mode declaration
@@ -114,6 +132,9 @@ automatically-unhide-macos-hidden-apps = false
     # end tell'
     # '''
 
+    # Open Finder
+    alt-e = 'exec-and-forget open -a Finder'
+
     # See: https://nikitabobko.github.io/AeroSpace/commands#layout
     alt-slash = 'layout tiles horizontal vertical'
     alt-comma = 'layout accordion horizontal vertical'
@@ -135,15 +156,16 @@ automatically-unhide-macos-hidden-apps = false
     alt-equal = 'resize smart +50'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
-    alt-1 = 'workspace 1'
-    alt-2 = 'workspace 2'
-    alt-3 = 'workspace 3'
-    alt-4 = 'workspace 4'
-    alt-5 = 'workspace 5'
-    alt-6 = 'workspace 6'
-    alt-7 = 'workspace 7'
-    alt-8 = 'workspace 8'
-    alt-9 = 'workspace 9'
+    alt-1 = 'workspace 1' # main/web
+    alt-2 = 'workspace 2' # dev/terminal
+    alt-3 = 'workspace 3' # code/editor
+    alt-4 = 'workspace 4' # comms/notes
+    alt-5 = 'workspace 5' # messages
+    alt-6 = 'workspace 6' # email/calendar
+    alt-7 = 'workspace 7' # laptop-main
+    alt-8 = 'workspace 8' # laptop-dev
+    alt-9 = 'workspace 9' # laptop-misc
+    alt-0 = 'workspace 10' # scratch/overflow
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
     alt-shift-1 = 'move-node-to-workspace 1 --focus-follows-window'
@@ -155,6 +177,7 @@ automatically-unhide-macos-hidden-apps = false
     alt-shift-7 = 'move-node-to-workspace 7 --focus-follows-window'
     alt-shift-8 = 'move-node-to-workspace 8 --focus-follows-window'
     alt-shift-9 = 'move-node-to-workspace 9 --focus-follows-window'
+    alt-shift-0 = 'move-node-to-workspace 10 --focus-follows-window'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     alt-tab = 'workspace-back-and-forth'
@@ -196,15 +219,55 @@ automatically-unhide-macos-hidden-apps = false
     up = 'volume up'
     shift-down = ['volume set 0', 'mode main']
 
+# App workspace assignments.
 [[on-window-detected]]
     if.app-id = 'com.apple.finder'
     run = 'layout floating'
+
+# 1 main/web
 [[on-window-detected]]
-    if.app-id = 'com.apple.MobileSMS'
-    run = 'move-node-to-workspace 5'
+    if.app-id = 'org.mozilla.firefox'
+    run = 'move-node-to-workspace 1'
+[[on-window-detected]]
+    if.app-id = 'com.google.Chrome'
+    run = 'move-node-to-workspace 1'
+
+# 2 dev/terminal
 [[on-window-detected]]
     if.app-id = 'net.kovidgoyal.kitty'
     run = 'move-node-to-workspace 2'
 [[on-window-detected]]
     if.app-id = 'com.mitchellh.ghostty'
     run = 'move-node-to-workspace 2'
+
+# 3 gpt
+[[on-window-detected]]
+    if.app-id = 'com.openai.codex'
+    run = 'move-node-to-workspace 3'
+[[on-window-detected]]
+    if.app-id = 'com.openai.chat'
+    run = 'move-node-to-workspace 3'
+
+# 4 comms/notes
+[[on-window-detected]]
+    if.app-id = 'com.apple.Notes'
+    run = 'move-node-to-workspace 4'
+[[on-window-detected]]
+    if.app-id = 'md.obsidian'
+    run = 'move-node-to-workspace 4'
+
+# 5 messages
+[[on-window-detected]]
+    if.app-id = 'com.apple.MobileSMS'
+    run = 'move-node-to-workspace 5'
+
+# 6 email/calendar
+[[on-window-detected]]
+    if.app-id = 'com.apple.mail'
+    run = 'move-node-to-workspace 6'
+[[on-window-detected]]
+    if.app-id = 'com.apple.iCal'
+    run = 'move-node-to-workspace 6'
+[[on-window-detected]]
+    if.app-id = 'com.apple.reminders'
+    run = 'move-node-to-workspace 6'

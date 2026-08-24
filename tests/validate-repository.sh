@@ -48,10 +48,13 @@ check grep -qF 'promptChoiceOnce . "role" "Machine role"' home/.chezmoi.toml.tmp
 check grep -qF 'promptChoiceOnce . "desktop" "Desktop environment"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptBoolOnce . "installPackages" "Install missing packages during apply?"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptBoolOnce . "autoTmux" "Automatically attach local interactive shells to tmux?"' home/.chezmoi.toml.tmpl
-check_not grep -RIn --exclude-dir=.git -E '\.chezmoi\.kernel([^.]|$)' .
-check grep -qF '.chezmoi.kernel.osrelease' home/.chezmoi.toml.tmpl
-check grep -qF '.chezmoi.kernel.osrelease' home/.chezmoiignore
-check grep -qF '.chezmoi.kernel.osrelease' home/dot_config/zsh/dot_zprofile.tmpl
+check_not grep -RIn -F '.chezmoi.kernel.osrelease' home
+check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/.chezmoi.toml.tmpl
+check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/.chezmoiignore
+check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/dot_config/zsh/dot_zprofile.tmpl
+check grep -qF 'or (contains "microsoft" $kernel) (contains "wsl" $kernel)' home/.chezmoi.toml.tmpl
+check grep -qF 'or (contains "microsoft" $kernel) (contains "wsl" $kernel)' home/.chezmoiignore
+check grep -qF 'or (contains "microsoft" $kernel) (contains "wsl" $kernel)' home/dot_config/zsh/dot_zprofile.tmpl
 check grep -qF -- '-z "${TMUX-}"' home/dot_config/zsh/dot_zprofile.tmpl
 check grep -qF -- '-z "${SSH_CONNECTION-}"' home/dot_config/zsh/dot_zprofile.tmpl
 check grep -qF -- '-z "${SSH_TTY-}"' home/dot_config/zsh/dot_zprofile.tmpl
@@ -62,10 +65,13 @@ check grep -qF 'hyprland.local.lua' home/dot_config/hypr/hyprland.lua
 check test ! -e home/dot_config/hypr/hyprland.local.lua
 check test -f docs/hyprland-local.example.lua
 check test ! -d home/dot_config/awesome
-check grep -qF '.aerospace.toml' home/.chezmoiignore
+check test -f home/dot_config/aerospace/aerospace.toml
+check test -f home/remove_dot_aerospace.toml
+check test ! -s home/remove_dot_aerospace.toml
+check grep -qF '.config/aerospace' home/.chezmoiignore
 check grep -qF '.config/sketchybar' home/.chezmoiignore
 check_not grep -qF 'dot_config/' home/.chezmoiignore
-check_not grep -qF 'dot_aerospace.toml' home/.chezmoiignore
+check_not test -e home/dot_aerospace.toml
 check_not grep -qF 'README.md' home/.chezmoiignore
 check_not grep -qF 'docs/' home/.chezmoiignore
 check_not grep -qF 'tests/' home/.chezmoiignore
@@ -134,9 +140,23 @@ while IFS= read -r -d '' file; do
   check zsh -n "$file"
 done < <(find home . -path './.git' -prune -o -type f \( -name '*.zsh' -o -name 'dot_zshenv' \) -print0)
 
+check_kernel_classification() {
+  local name=$1 expected=$2 override=$3 actual
+  actual=$(chezmoi --source "$repo" --no-tty --override-data "$override" \
+    execute-template '{{ $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) }}{{ if (or (contains "microsoft" $kernel) (contains "wsl" $kernel)) }}true{{ else }}false{{ end }}')
+  check test "$actual" = "$expected"
+}
+check_kernel_classification 'Microsoft kernel is WSL' true \
+  '{"chezmoi":{"kernel":{"osrelease":"5.15.90.1-MICROSOFT-standard"}}}'
+check_kernel_classification 'WSL kernel is WSL' true \
+  '{"chezmoi":{"kernel":{"osrelease":"6.1.21.2-standard-WSL2"}}}'
+check_kernel_classification 'ordinary kernel is not WSL' false \
+  '{"chezmoi":{"kernel":{"osrelease":"6.8.0-31-generic"}}}'
+
 run_profile() {
   local name=$1 role=$2 desktop=$3
-  local tmp dest cache config state dry second
+  local tmp dest cache config state dry second chezmoi_os is_wsl
+  local expected_hyprland=false expected_aerospace=false expected_sketchybar=false
   tmp=$(mktemp -d)
   dest=$tmp/destination
   cache=$tmp/cache
@@ -154,10 +174,28 @@ run_profile() {
         rm -rf "$tmp"
         return
       }
+  printf 'PASS: %s clean init\n' "$name"
   check grep -qF "role = \"$role\"" "$config"
   check grep -qF "desktop = \"$desktop\"" "$config"
   check grep -qF 'installPackages = false' "$config"
   check grep -qF 'autoTmux = false' "$config"
+  chezmoi_os=$(chezmoi --source "$repo" --destination "$dest" --cache "$cache" \
+    --config "$config" --persistent-state "$state" --no-tty \
+    execute-template '{{ .chezmoi.os }}')
+  is_wsl=$(awk -F= '$1 ~ /isWSL/ {gsub(/[[:space:]]/, "", $2); print $2}' "$config")
+  check test "$chezmoi_os" = linux -o "$chezmoi_os" = darwin
+  check test "$is_wsl" = true -o "$is_wsl" = false
+  if [[ "$chezmoi_os" == linux && "$is_wsl" == false \
+    && "$role" == workstation \
+    && ("$desktop" == auto || "$desktop" == hyprland) ]]; then
+    expected_hyprland=true
+  fi
+  if [[ "$chezmoi_os" == darwin && "$is_wsl" == false \
+    && "$role" == workstation \
+    && ("$desktop" == auto || "$desktop" == aerospace) ]]; then
+    expected_aerospace=true
+    expected_sketchybar=true
+  fi
   if chezmoi --source "$repo" --destination "$dest" --cache "$cache" \
     --config "$config" --persistent-state "$state" --no-tty init </dev/null; then
     printf 'PASS: %s prompt answers persist\n' "$name"
@@ -167,7 +205,8 @@ run_profile() {
 
   # Seed obsolete files to prove remove_ source attributes converge an existing home.
   mkdir -p "$dest/.config/nvim/lua/plugins" "$dest/.config/nvim/after/ftplugin"
-  touch "$dest/.config/nvim/lua/plugins/avante.lua" \
+  touch "$dest/.aerospace.toml" \
+    "$dest/.config/nvim/lua/plugins/avante.lua" \
     "$dest/.config/nvim/lua/plugins/llm.lua" \
     "$dest/.config/nvim/lua/plugins/nvim-ts-autotag.lua" \
     "$dest/.config/nvim/after/ftplugin/typescript.vim" \
@@ -175,13 +214,21 @@ run_profile() {
 
   dry=$(chezmoi --source "$repo" --destination "$dest" --cache "$cache" \
     --config "$config" --persistent-state "$state" --no-tty --dry-run --verbose apply)
-  if [[ "$role" == workstation && ("$desktop" == auto || "$desktop" == hyprland) ]]; then
+  if [[ "$expected_hyprland" == true ]]; then
     [[ "$dry" == *'.config/hypr/hyprland.lua'* ]] || fail "$name dry-run selects Hyprland"
   else
     [[ "$dry" != *'.config/hypr/hyprland.lua'* ]] || fail "$name dry-run excludes Hyprland"
   fi
-  [[ "$dry" != *'.aerospace.toml'* ]] || fail "$name dry-run excludes AeroSpace"
-  [[ "$dry" != *'.config/sketchybar/sketchybarrc'* ]] || fail "$name dry-run excludes SketchyBar"
+  if [[ "$expected_aerospace" == true ]]; then
+    [[ "$dry" == *'.config/aerospace/aerospace.toml'* ]] || fail "$name dry-run selects AeroSpace"
+  else
+    [[ "$dry" != *'.config/aerospace/aerospace.toml'* ]] || fail "$name dry-run excludes AeroSpace"
+  fi
+  if [[ "$expected_sketchybar" == true ]]; then
+    [[ "$dry" == *'.config/sketchybar/sketchybarrc'* ]] || fail "$name dry-run selects SketchyBar"
+  else
+    [[ "$dry" != *'.config/sketchybar/sketchybarrc'* ]] || fail "$name dry-run excludes SketchyBar"
+  fi
 
   chezmoi --source "$repo" --destination "$dest" --cache "$cache" \
     --config "$config" --persistent-state "$state" --no-tty --force apply \
@@ -197,6 +244,22 @@ run_profile() {
 
   check test -f "$dest/.zshenv"
   check test -f "$dest/.config/nvim/init.lua"
+  check_not test -e "$dest/.aerospace.toml"
+  if [[ "$expected_hyprland" == true ]]; then
+    check test -f "$dest/.config/hypr/hyprland.lua"
+  else
+    check_not test -e "$dest/.config/hypr"
+  fi
+  if [[ "$expected_aerospace" == true ]]; then
+    check test -f "$dest/.config/aerospace/aerospace.toml"
+  else
+    check_not test -e "$dest/.config/aerospace"
+  fi
+  if [[ "$expected_sketchybar" == true ]]; then
+    check test -x "$dest/.config/sketchybar/sketchybarrc"
+  else
+    check_not test -e "$dest/.config/sketchybar"
+  fi
   check_not test -e "$dest/.config/nvim/lua/plugins/avante.lua"
   check_not test -e "$dest/.config/nvim/lua/plugins/llm.lua"
   check_not test -e "$dest/.config/nvim/lua/plugins/nvim-ts-autotag.lua"
@@ -206,11 +269,6 @@ run_profile() {
   check test -x "$dest/.pi/agent/scripts/lint-subagent-sessions.mjs"
   check test -L "$dest/.config/kitty/theme.conf"
   check test "$(readlink "$dest/.config/kitty/theme.conf")" = ./kitty-themes/Galaxy.conf
-  if [[ "$role" == workstation && "$desktop" == auto && "$OSTYPE" == darwin* ]]; then
-    check test -x "$dest/.config/sketchybar/sketchybarrc"
-  else
-    check_not test -e "$dest/.config/sketchybar"
-  fi
   check node --check "$dest/.pi/agent/scripts/lint-subagent-sessions.mjs"
 
   while IFS= read -r -d '' file; do
@@ -219,7 +277,7 @@ run_profile() {
   while IFS= read -r -d '' file; do
     check python3 -c 'import sys,tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$file"
   done < <(find "$dest" -name '*.toml' -print0)
-  if [[ "$role" == workstation && ("$desktop" == auto || "$desktop" == hyprland) ]]; then
+  if [[ "$expected_hyprland" == true ]]; then
     check grep -qF 'exec Hyprland' "$dest/.config/zsh/.zprofile"
     check grep -qF -- '-z "${TMUX-}"' "$dest/.config/zsh/.zprofile"
     check grep -qF -- '-z "${SSH_CONNECTION-}"' "$dest/.config/zsh/.zprofile"
@@ -239,8 +297,8 @@ run_profile() {
   printf 'PASS: %s isolated chezmoi profile\n' "$name"
 }
 
-run_profile linux-workstation workstation auto
-run_profile linux-shell shell none
+run_profile workstation-auto workstation auto
+run_profile shell-none shell none
 
 check git diff --check
 if ((failures)); then

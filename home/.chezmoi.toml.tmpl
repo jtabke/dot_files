@@ -2,8 +2,8 @@
 {{- $desktop := promptChoiceOnce . "desktop" "Desktop environment" (list "auto" "hyprland" "aerospace" "none") -}}
 {{- $installPackages := promptBoolOnce . "installPackages" "Install missing packages during apply?" -}}
 {{- $autoTmux := promptBoolOnce . "autoTmux" "Automatically attach local interactive shells to tmux?" -}}
-{{- $kernel := lower .chezmoi.kernel.osrelease -}}
-{{- $isWSL := or (contains $kernel "microsoft") (contains $kernel "wsl") -}}
+{{- $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) -}}
+{{- $isWSL := or (contains "microsoft" $kernel) (contains "wsl" $kernel) -}}
 {{- $osReleaseID := lower (default "" (index .chezmoi.osRelease "id")) -}}
 [data]
     role = {{ $role | quote }}

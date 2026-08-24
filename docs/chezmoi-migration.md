@@ -40,12 +40,16 @@ profile data file.
 - Native Linux uses Hyprland for `auto` or `hyprland`.
 - macOS uses AeroSpace and SketchyBar for `auto` or `aerospace`.
 - `none` excludes all desktop paths.
-- WSL detection uses lower `.chezmoi.kernel.osrelease`; WSL is shell/CLI only.
+- WSL detection uses a safe lookup of the lower-cased kernel release; WSL is shell/CLI only.
 - Linux never manages AeroSpace or SketchyBar.
 - macOS never manages Hyprland.
+- The macOS AeroSpace profile manages `.config/aerospace` and
+  `.config/sketchybar`. SketchyBar is currently inactive and optional because
+  the imported AeroSpace config does not start it or send workspace-change
+  triggers. The migration removes the legacy `~/.aerospace.toml` target.
 
 `.chezmoiignore` matches decoded targets such as `.config/hypr` and
-`.aerospace.toml`, not source names such as `dot_config/hypr`.
+`.config/aerospace`, not source names such as `dot_config/hypr`.
 
 ## Cutover
 
@@ -76,10 +80,9 @@ Run the migration checks:
 
 The test runs chezmoi v2.72.0 with isolated `--source`, `--config`, `--cache`,
 `--destination`, and persistent-state paths. It prompts through stdin into a
-temporary config, renders Linux workstation and shell profiles, performs a dry
-run and apply, verifies a clean second diff, and checks paths, modes, JSON,
-TOML, shell syntax, the Kitty relative symlink, Pi link, secrets, and
-`git diff --check`. It does not change the real `$HOME`. Darwin and WSL
-built-in target overrides are not reliable in this environment, so their
-selection remains covered by focused template assertions and the documented
-conditions; a native Darwin/WSL apply is still a residual platform test gap.
+temporary config, renders host-native workstation/`auto` and shell/`none`
+profiles, performs a dry run and apply, verifies a clean second diff, and checks
+paths, modes, JSON, TOML, shell syntax, the Kitty relative symlink, Pi link,
+secrets, and `git diff --check`. Darwin runs natively on macOS and Linux runs
+natively on Linux. It does not change the real `$HOME`. WSL and cross-host
+simulation remain residual platform test gaps.

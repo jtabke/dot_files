@@ -7,8 +7,8 @@ elif [[ -x /opt/homebrew/bin/brew ]]; then
 fi
 {{- end }}
 export PI_CACHE_RETENTION=long
-{{- $kernel := lower .chezmoi.kernel.osrelease -}}
-{{- $isWSL := or (contains $kernel "microsoft") (contains $kernel "wsl") -}}
+{{- $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) -}}
+{{- $isWSL := or (contains "microsoft" $kernel) (contains "wsl" $kernel) -}}
 {{- if and (eq .role "workstation") (eq .chezmoi.os "linux") (not $isWSL) (or (eq .desktop "auto") (eq .desktop "hyprland")) }}
 # Never start a compositor from tmux, SSH, a pseudo-terminal, or WSL. This
 # block is rendered only for native Linux Hyprland workstation profiles.

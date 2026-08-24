@@ -16,12 +16,18 @@ PLUGIN_DIR="${CONFIG_DIR}/plugins"
 source "$PLUGIN_DIR/icon_map.sh"
 
 # --- Update display assignment (handles workspaces moving between monitors) ---
-for mid in $(aerospace list-monitors | awk '{print $1}'); do
-  if aerospace list-workspaces --monitor "$mid" | grep -qx "$WS"; then
-    sketchybar --set "$NAME" display="$mid"
-    break
-  fi
-done
+# SketchyBar's `display=` property uses the AppKit NSScreen display id, not
+# necessarily AeroSpace's left-to-right monitor id. AeroSpace exposes that id
+# via the `monitor-appkit-nsscreen-screens-id` output field.
+display_id="$(
+  aerospace list-workspaces --all \
+    --format '%{workspace} %{monitor-appkit-nsscreen-screens-id}' 2>/dev/null \
+  | awk -v ws="$WS" '$1 == ws && $2 != "" { print $2; exit }'
+)"
+
+if [[ -n "$display_id" ]]; then
+  sketchybar --set "$NAME" display="$display_id"
+fi
 
 # --- Figure out who is focused ---
 # On aerospace_workspace_change, SketchyBar passes FOCUSED_WORKSPACE.

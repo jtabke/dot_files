@@ -54,7 +54,16 @@ sketchybar --default "${default[@]}"
 
 sketchybar --add event aerospace_workspace_change
 
-for sid in $(aerospace list-workspaces --all); do
+# AeroSpace workspaces are dynamic: `aerospace list-workspaces --all` only
+# returns workspaces that currently exist/are attached. Create the fixed set
+# bound in aerospace.toml so switching to an empty workspace (e.g. 2/3/8)
+# always has a SketchyBar item to update.
+SPACE_IDS=(1 2 3 4 5 6 7 8 9)
+
+# Remove stale space items from older monitor/workspace layouts before rebuilding.
+sketchybar --remove '/space\..*/' 2>/dev/null || true
+
+for sid in "${SPACE_IDS[@]}"; do
   sketchybar --add item space.$sid left \
     --subscribe space.$sid aerospace_workspace_change \
     --set space.$sid \
@@ -62,10 +71,11 @@ for sid in $(aerospace list-workspaces --all); do
       background.corner_radius=5 \
       background.height=20 \
       background.drawing=off \
+      drawing=off \
       icon="$sid" \
       icon.font="Hack Nerd Font:Bold:13.0" \
       label.font="sketchybar-app-font:Regular:16.0" \
-      label.drawing=on \
+      label.drawing=off \
       click_script="aerospace workspace $sid" \
       script="$PLUGIN_DIR/aerospace.sh $sid"
 done

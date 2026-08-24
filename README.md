@@ -96,6 +96,11 @@ Profile behavior:
 | WSL2 | Yes | No | No |
 | Desktop `none` | Yes | No | No |
 
+The macOS AeroSpace profile manages AeroSpace at
+`~/.config/aerospace/aerospace.toml` and the SketchyBar files under
+`~/.config/sketchybar`. SketchyBar is currently inactive and optional: the
+imported AeroSpace config does not start it or send workspace-change triggers.
+
 WSL2 detection uses the kernel release. WSL2 is always treated as shell/CLI
 only, even when workstation options are selected.
 
@@ -109,8 +114,10 @@ Requirements for the full validation suite include `bash`, `zsh`, `chezmoi`,
 ```
 
 The suite creates temporary config, cache, state, source-render, and destination
-paths. It initializes and applies Linux workstation and shell profiles only in
-those paths. It also checks:
+paths. It initializes and applies host-native workstation/`auto` and shell/`none`
+profiles only in those paths. Darwin runs natively on macOS and Linux runs
+natively on Linux; WSL and cross-host simulation remain residual gaps. It also
+checks:
 
 - Template selection and repeatable second applies
 - Shell, JSON, TOML, and JavaScript syntax
