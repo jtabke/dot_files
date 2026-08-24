@@ -7,6 +7,7 @@
   "subagents": {
     "defaultModel": "openai-codex/gpt-5.6-luna",
     "defaultThinking": "medium",
+    "maxThinking": "xhigh",
     "agentOverrides": {
       "scout": {
         "model": "openai-codex/gpt-5.6-luna",
@@ -16,20 +17,20 @@
       },
       "researcher": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "xhigh",
+        "thinking": "high",
         "defaultContext": "fresh",
         "inheritProjectContext": false,
         "acceptanceRole": "read-only"
       },
       "delegate": {
         "model": "openai-codex/gpt-5.6-luna",
-        "thinking": "xhigh",
+        "thinking": "medium",
         "defaultContext": "fresh"
       },
       "worker": {
         "model": "openai-codex/gpt-5.6-luna",
         "thinking": "high",
-        "defaultContext": "fresh",
+        "defaultContext": "fork",
         "acceptanceRole": "writer"
       },
       "reviewer": {
@@ -40,7 +41,7 @@
       },
       "oracle": {
         "model": "openai-codex/gpt-5.6-sol",
-        "thinking": "medium",
+        "thinking": "high",
         "defaultContext": "fork",
         "acceptanceRole": "read-only"
       }

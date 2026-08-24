@@ -1,16 +1,16 @@
 {
   "toolDescriptionMode": "compact",
   "asyncByDefault": true,
-  "forceTopLevelAsync": false,
+  "forceTopLevelAsync": true,
   "waitTool": {
-    "enabled": false
+    "enabled": true
   },
   "toolTimeoutMs": 600000,
   "resultScanLogging": "activity",
   "fleetView": true,
   "globalConcurrencyLimit": 3,
   "maxActiveAsyncRunsPerSession": 3,
-  "maxSubagentSpawnsPerSession": 0,
+  "maxSubagentSpawnsPerSession": 32,
   "maxSubagentSpawnsPerRun": 24,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
@@ -27,8 +27,8 @@
   },
   "control": {
     "enabled": true,
-    "needsAttentionAfterMs": 90000,
-    "activeNoticeAfterMs": 180000,
+    "needsAttentionAfterMs": 180000,
+    "activeNoticeAfterMs": 300000,
     "activeNoticeAfterTurns": 10,
     "failedToolAttemptsBeforeAttention": 2,
     "notifyOn": ["needs_attention", "active_long_running"],
