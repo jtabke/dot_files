@@ -14,6 +14,11 @@
   "maxSubagentSpawnsPerRun": 24,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
+  "missions": {
+    "enabled": true,
+    "globalIndex": true,
+    "retainTerminal": 100
+  },
   "intercomBridge": {
     "mode": "always",
     "resultDelivery": false
