@@ -26,13 +26,13 @@ Options:
 
 Paths may be JSONL files or directories. Directories are searched recursively
 for *.jsonl files. If no paths are given, ~/.pi/agent/sessions is searched.
-Tool calls are deduplicated by their JSONL tool-call ID. Checks cover blocking
-waits, immediate post-wait status calls, action:"mission", unexpected detached
-workflow results, output-path collision errors, direct or foreground execution,
-spawn-budget grants, worker hard budgets, and worker launches without effective
-checked-or-stronger acceptance evidence. That acceptance must list changed-files,
-commands-run, residual-risks, validation-output, and no-staged-files. A
-workflow-level checked acceptance counts as the default for its child launches.
+Tool calls are deduplicated by their JSONL tool-call ID. Checks cover immediate
+post-wait status calls, action:"mission", unexpected detached workflow results,
+output-path collision errors, direct or foreground execution, spawn-budget grants,
+worker hard budgets, and worker launches without an effective checked-or-stronger
+acceptance or host gate. Checked acceptance must list changed-files, commands-run,
+residual-risks, validation-output, and no-staged-files. A workflow-level checked
+acceptance or host gate counts as the default for its child launches.
 A status warning is reported only when the next detectable tool call after a
 successful wait is a subagent status call. Dynamic worker agent variables are
 not inferred. Exit 0 means clean, 1 means policy warnings, and 2 means usage,
@@ -205,12 +205,35 @@ function isCheckedOrStrongerAcceptance(acceptance) {
 }
 
 function objectSpanAround(text, propertyIndex) {
-  const start = text.lastIndexOf("{", propertyIndex);
-  if (start < 0) return "";
-
-  let depth = 0;
+  const openBraces = [];
   let quote = null;
   let escaped = false;
+  for (let index = 0; index < propertyIndex; index += 1) {
+    const character = text[index];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (character === "\\") {
+        escaped = true;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === "'" || character === '"' || character === "`") {
+      quote = character;
+      continue;
+    }
+    if (character === "{") openBraces.push(index);
+    if (character === "}") openBraces.pop();
+  }
+
+  const start = openBraces.at(-1);
+  if (start === undefined) return "";
+
+  let depth = 0;
+  quote = null;
+  escaped = false;
   for (let index = start; index < text.length; index += 1) {
     const character = text[index];
     if (quote) {
@@ -251,7 +274,9 @@ function workflowWorkerLaunches(workflowScript) {
       ? [...evidenceMatch[1].matchAll(/(['"])(.*?)\1/g)].map((item) => item[2])
       : [];
     launches.push({
-      checked: hasCheckedOrStrongerLevel && hasRequiredWorkerEvidence(evidence),
+      checked:
+        /\bgate\s*:/.test(objectText) ||
+        (hasCheckedOrStrongerLevel && hasRequiredWorkerEvidence(evidence)),
       hardBudget: /\b(?:turnBudget|toolBudget)\s*:/.test(objectText),
     });
   }
@@ -262,13 +287,13 @@ function inspectWorkerLaunch(record) {
   if (record.name !== "subagent") return;
   const args = record.arguments;
   if (args.agent === "worker") {
-    if (!isCheckedOrStrongerAcceptance(args.acceptance)) {
+    if (!args.gate && !isCheckedOrStrongerAcceptance(args.acceptance)) {
       addWarning(
         "worker-acceptance",
         record.id,
         record.path,
         record.line,
-        'worker launch has no checked-or-stronger acceptance; add acceptance.level="checked" or "verified" with the required evidence fields',
+        'worker launch has no host gate or checked-or-stronger acceptance; add gate or acceptance.level="checked" or "verified" with the required evidence fields',
       );
     }
     if (args.turnBudget || args.toolBudget) {
@@ -282,7 +307,8 @@ function inspectWorkerLaunch(record) {
     }
   }
   if (typeof args.workflowScript !== "string") return;
-  const workflowAcceptance = isCheckedOrStrongerAcceptance(args.acceptance);
+  const workflowAcceptance =
+    Boolean(args.gate) || isCheckedOrStrongerAcceptance(args.acceptance);
   workflowWorkerLaunches(args.workflowScript).forEach((launch, index) => {
     if (!launch.checked && !workflowAcceptance) {
       addWarning(
@@ -290,7 +316,7 @@ function inspectWorkerLaunch(record) {
         `${record.id}:${index}`,
         record.path,
         record.line,
-        'workflow worker launch has no checked-or-stronger acceptance; pass acceptance.level="checked" or "verified" in the child launch',
+        'workflow worker launch has no host gate or checked-or-stronger acceptance; pass gate or acceptance.level="checked" or "verified" in the child launch',
       );
     }
     if (launch.hardBudget) {
@@ -306,19 +332,6 @@ function inspectWorkerLaunch(record) {
 }
 
 function inspectCall(record) {
-  if (
-    record.name === "subagent_wait" &&
-    record.arguments.nonBlocking !== true
-  ) {
-    addWarning(
-      "blocking-wait",
-      record.id,
-      record.path,
-      record.line,
-      "blocking subagent_wait call; return control or use nonBlocking:true instead of waiting to observe progress",
-    );
-  }
-
   if (record.name !== "subagent") return;
   const args = record.arguments;
   if (!args.action) {
@@ -347,7 +360,7 @@ function inspectCall(record) {
       record.id,
       record.path,
       record.line,
-      "spawn-budget grant required user confirmation; prefer an unlimited session cap with bounded per-run fanout and concurrency",
+      "spawn-budget grant required user confirmation; prefer decomposition or a fresh session, and grant capacity only when the user approves it",
     );
   }
   if (args.action === "mission") {
@@ -364,8 +377,14 @@ function inspectCall(record) {
 
 function isSuccessfulWait(result) {
   if (result.isError === true) return false;
-  if (result.details && Array.isArray(result.details.completions)) return true;
-  return /\bwaited\b|\boutcome:\s*\d+\s+(?:complete|completed)\b/i.test(
+  if (
+    result.details &&
+    Array.isArray(result.details.completions) &&
+    result.details.completions.length > 0
+  ) {
+    return true;
+  }
+  return /\boutcome:\s*[1-9]\d*\s+(?:complete|completed)\b/i.test(
     result.text,
   );
 }

@@ -10,8 +10,8 @@
   "fleetView": true,
   "globalConcurrencyLimit": 3,
   "maxActiveAsyncRunsPerSession": 3,
-  "maxSubagentSpawnsPerSession": 32,
-  "maxSubagentSpawnsPerRun": 24,
+  "maxSubagentSpawnsPerSession": 24,
+  "maxSubagentSpawnsPerRun": 6,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
   "missions": {
