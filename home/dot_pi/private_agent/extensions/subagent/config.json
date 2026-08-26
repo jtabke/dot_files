@@ -3,7 +3,7 @@
   "asyncByDefault": true,
   "forceTopLevelAsync": true,
   "waitTool": {
-    "enabled": true
+    "enabled": false
   },
   "toolTimeoutMs": 600000,
   "resultScanLogging": "activity",
