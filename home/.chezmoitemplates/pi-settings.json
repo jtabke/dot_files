@@ -52,7 +52,7 @@
     "npm:pi-web-access",
     "npm:pi-mcp-adapter",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:pi-vim"
+    "git:git@github.com:jtabke/pi-vim"
   ],
   "enableInstallTelemetry": false,
   "markdown": {
