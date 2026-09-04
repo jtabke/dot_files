@@ -4,10 +4,13 @@ description: Render a minimum-sufficient worker contract
 Goal
 {{goal}}
 
+Checkpoint identity
+In the governing evidence below, name the active plan path, mission ID when present, prior checkpoint and terminal verdict, exact current checkpoint, and one next ready action. For work that is not plan-driven, state that checkpoint identity is not applicable.
+
 Closed scope envelope
 - cwd/repository: {{cwd}}
 - allowed files or exact owning seam: {{target}}
-- governing plan, diff, or evidence: {{evidence}}
+- governing plan, mission state, prior verdict, diff, or other evidence: {{evidence}}
 The envelope is closed. Inspect adjacent code only to understand contracts and callers. Do not change files or behavior outside the envelope without supervisor approval.
 
 Required outcome and approved decisions
@@ -46,7 +49,7 @@ Edit discipline
 Re-read the target slice immediately before editing. Use small, unique, non-overlapping replacements. After one failed edit, re-read before retrying; do not repeatedly guess replacement text.
 
 Checkpoint boundary
-Implement one coherent, independently testable checkpoint. If the task contains independent seams or cannot safely finish in this run, stop at a durable boundary and report the exact remaining checkpoints. If correctness requires leaving the closed envelope, stop before the out-of-scope edit and use `contact_supervisor` with `reason: "need_decision"`.
+Implement one coherent, independently testable checkpoint with one explicit completion verdict: completed, blocked, or disproven. If the task contains independent seams or cannot safely finish in this run, stop at a durable boundary and report the exact remaining checkpoints. If correctness requires leaving the closed envelope, stop before the out-of-scope edit and use `contact_supervisor` with `reason: "need_decision"`.
 
 Required handoff
 Return:
