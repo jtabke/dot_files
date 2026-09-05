@@ -1,0 +1,38 @@
+#!/bin/sh
+set -eu
+
+agent_dir=${PI_CODING_AGENT_DIR:-"$HOME/.pi/agent"}
+
+printf 'npm packages:\n'
+if [ -f "$agent_dir/npm/package.json" ]; then
+  npm ls --prefix "$agent_dir/npm" --depth=0 --json 2>/dev/null |
+    node -e '
+      let input = "";
+      process.stdin.on("data", chunk => input += chunk);
+      process.stdin.on("end", () => {
+        const dependencies = JSON.parse(input).dependencies ?? {};
+        for (const name of Object.keys(dependencies).sort()) {
+          console.log(`  ${name}  ${dependencies[name].version ?? "unknown"}`);
+        }
+      });
+    '
+else
+  printf '  none\n'
+fi
+
+printf '\ngit packages:\n'
+git_dirs=
+if [ -d "$agent_dir/git" ]; then
+  git_dirs=$(find "$agent_dir/git" -type d -name .git -prune -print)
+fi
+if [ -n "$git_dirs" ]; then
+  printf '%s\n' "$git_dirs" |
+    while IFS= read -r git_dir; do
+      repo=${git_dir%/.git}
+      name=${repo#"$agent_dir/git/"}
+      revision=$(git -C "$repo" describe --tags --always --dirty)
+      printf '  %s  %s\n' "$name" "$revision"
+    done
+else
+  printf '  none\n'
+fi
