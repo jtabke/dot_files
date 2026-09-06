@@ -15,6 +15,14 @@ packages=(
   ripgrep:rg
   fzf:fzf
 )
+# Fuzzel is the Wayland launcher for Hyprland. Linux-only: no macOS Homebrew
+# bottle tracks upstream, and shell-only servers do not need it either, but
+# keeping the gate OS-level matches this adapter's existing platform split.
+if [[ "{{ .chezmoi.os }}" == "linux" ]]; then
+  packages+=(
+    fuzzel:fuzzel
+  )
+fi
 missing=()
 for entry in "${packages[@]}"; do
   package=${entry%%:*}

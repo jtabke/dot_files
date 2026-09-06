@@ -8,7 +8,7 @@
 
 local terminal    = "ghostty"
 local fileManager = "nemo"
-local menu        = "wofi --show drun"
+local menu        = "pkill fuzzel || fuzzel"
 
 
 -------------------
@@ -127,6 +127,7 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + T", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(menu))
+hl.bind(mainMod .. " + SHIFT + A", hl.dsp.exec_cmd("pkill fuzzel || fuzzel --show-actions"))
 hl.bind(mainMod .. " + RETURN", hl.dsp.layout("swapwithmaster auto"))
 
 -- Move focus
