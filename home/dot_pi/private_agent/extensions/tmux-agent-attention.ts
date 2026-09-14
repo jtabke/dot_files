@@ -35,6 +35,8 @@ function requestAttention(): void {
 }
 
 export default function (pi: ExtensionAPI) {
+	if (process.env.PI_SUBAGENT_CHILD === "1") return;
+
 	pi.on("agent_start", async () => clearAttention());
 	pi.on("agent_settled", async () => requestAttention());
 	pi.on("ui_prompt_start", async () => requestAttention());
