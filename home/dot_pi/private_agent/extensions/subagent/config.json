@@ -2,9 +2,6 @@
   "toolDescriptionMode": "compact",
   "asyncByDefault": true,
   "forceTopLevelAsync": true,
-  "modelExclusions": {
-    "defaultTtlMs": 1
-  },
   "waitTool": {
     "enabled": false
   },
