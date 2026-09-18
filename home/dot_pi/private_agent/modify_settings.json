@@ -6,4 +6,4 @@
 {{- $baseline = setValueAtPath "lastChangelogVersion" (index $current "lastChangelogVersion") $baseline -}}
 {{- end -}}
 {{- end -}}
-{{ $baseline | toPrettyJson }}
+{{ $baseline | toPrettyJson -}}
