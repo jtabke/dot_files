@@ -1,11 +1,11 @@
 {
   "theme": "dark",
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-6-sol",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "subagents": {
-    "defaultModel": "openai-codex/gpt-6-sol",
+    "defaultModel": "openai-codex/gpt-6.1-sol",
     "defaultThinking": "medium",
     "agentOverrides": {
       "scout": {
@@ -22,24 +22,24 @@
         "acceptanceRole": "read-only"
       },
       "delegate": {
-        "model": "openai-codex/gpt-6-luna",
-        "thinking": "high",
+        "model": "openai-codex/gpt-6.1-sol",
+        "thinking": "low",
         "defaultContext": "fresh"
       },
       "worker": {
-        "model": "openai-codex/gpt-6-sol",
+        "model": "openai-codex/gpt-6.1-sol",
         "thinking": "low",
         "defaultContext": "fork",
         "acceptanceRole": "writer"
       },
       "reviewer": {
-        "model": "openai-codex/gpt-6-sol",
+        "model": "openai-codex/gpt-6.1-sol",
         "thinking": "medium",
         "defaultContext": "fresh",
         "acceptanceRole": "read-only"
       },
       "oracle": {
-        "model": "openai-codex/gpt-6-sol",
+        "model": "openai-codex/gpt-6.1-sol",
         "thinking": "high",
         "defaultContext": "fork",
         "acceptanceRole": "read-only"
