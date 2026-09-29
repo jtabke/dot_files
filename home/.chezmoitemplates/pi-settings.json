@@ -3,6 +3,7 @@
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
+  "defaultTools": ["+codemode"],
   "hideThinkingBlock": false,
   "subagents": {
     "defaultModel": "openai-codex/gpt-6.1-sol",
