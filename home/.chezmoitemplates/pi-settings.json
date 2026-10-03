@@ -30,7 +30,7 @@
       "worker": {
         "model": "openai-codex/gpt-6.1-sol",
         "thinking": "low",
-        "defaultContext": "fork",
+        "defaultContext": "fresh",
         "acceptanceRole": "writer"
       },
       "reviewer": {
