@@ -1,63 +1,86 @@
 {
-  "theme": "dark",
-  "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6.1-sol",
+  "defaultProvider": "openai-codex",
   "defaultThinkingLevel": "medium",
-  "defaultTools": ["+codemode"],
-  "hideThinkingBlock": false,
-  "subagents": {
-    "defaultModel": "openai-codex/gpt-6.1-sol",
-    "defaultThinking": "medium",
-    "agentOverrides": {
-      "scout": {
-        "model": "openai-codex/gpt-6-luna",
-        "thinking": "high",
-        "defaultContext": "fresh",
-        "acceptanceRole": "read-only"
-      },
-      "researcher": {
-        "model": "openai-codex/gpt-6-luna",
-        "thinking": "high",
-        "defaultContext": "fresh",
-        "inheritProjectContext": false,
-        "acceptanceRole": "read-only"
-      },
-      "delegate": {
-        "model": "openai-codex/gpt-6.1-sol",
-        "thinking": "low",
-        "defaultContext": "fresh"
-      },
-      "worker": {
-        "model": "openai-codex/gpt-6.1-sol",
-        "thinking": "low",
-        "defaultContext": "fresh",
-        "acceptanceRole": "writer"
-      },
-      "reviewer": {
-        "model": "openai-codex/gpt-6.1-sol",
-        "thinking": "medium",
-        "defaultContext": "fresh",
-        "acceptanceRole": "read-only"
-      },
-      "oracle": {
-        "model": "openai-codex/gpt-6.1-sol",
-        "thinking": "high",
-        "defaultContext": "fork",
-        "acceptanceRole": "read-only"
-      }
-    }
-  },
-  "packages": [
-    "npm:pi-subagents",
-    "npm:pi-web-access",
-    "npm:pi-mcp-adapter",
-    "npm:@juicesharp/rpiv-ask-user-question",
-    "git:git@github.com:jtabke/pi-extensions",
-    "git:git@github.com:jtabke/pi-vim"
+  "defaultTools": [
+    "+codemode"
   ],
   "enableInstallTelemetry": false,
+  "hideThinkingBlock": false,
   "markdown": {
     "mermaid": "streaming"
   },
-  "tuiMode": "fullscreen"
+  "packages": [
+    "npm:pi-web-access",
+    "npm:pi-mcp-adapter",
+    "git:git@github.com:jtabke/pi-extensions",
+    "git:git@github.com:jtabke/pi-vim",
+    "git:github.com/lolipopshock/pi-clm",
+    "../../Documents/Coding/pi-companion",
+    {
+      "source": "git:github.com/nicobailon/pi-subagents@main",
+      "skills": [
+        "!skills/pi-subagents/**"
+      ]
+    }
+  ],
+  "subagents": {
+    "agentOverrides": {
+      "delegate": {
+        "defaultContext": "fresh",
+        "model": "openai-codex/gpt-6.1-sol",
+        "thinking": "low",
+        "inheritGlobalContext": false,
+        "inheritSkills": false
+      },
+      "oracle": {
+        "acceptanceRole": "read-only",
+        "defaultContext": "fork",
+        "model": "openai-codex/gpt-6.1-sol",
+        "thinking": "high",
+        "inheritGlobalContext": false,
+        "inheritSkills": false
+      },
+      "researcher": {
+        "acceptanceRole": "read-only",
+        "defaultContext": "fresh",
+        "inheritProjectContext": false,
+        "model": "openai-codex/gpt-6-luna",
+        "thinking": "high",
+        "inheritGlobalContext": false,
+        "inheritSkills": false
+      },
+      "reviewer": {
+        "acceptanceRole": "read-only",
+        "defaultContext": "fresh",
+        "model": "openai-codex/gpt-6.1-sol",
+        "thinking": "medium",
+        "inheritGlobalContext": false,
+        "inheritSkills": false
+      },
+      "scout": {
+        "acceptanceRole": "read-only",
+        "defaultContext": "fresh",
+        "model": "openai-codex/gpt-6-luna",
+        "thinking": "medium",
+        "inheritGlobalContext": false,
+        "inheritSkills": false
+      },
+      "worker": {
+        "acceptanceRole": "writer",
+        "defaultContext": "fresh",
+        "model": "openai-codex/gpt-6.1-sol",
+        "thinking": "medium",
+        "inheritGlobalContext": false,
+        "inheritSkills": false
+      }
+    },
+    "defaultModel": "openai-codex/gpt-6.1-sol",
+    "defaultThinking": "medium"
+  },
+  "theme": "dark",
+  "tuiMode": "fullscreen",
+  "extensions": [
+    "-builtin:mcp"
+  ]
 }

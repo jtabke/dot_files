@@ -8,10 +8,13 @@
   "toolTimeoutMs": 600000,
   "resultScanLogging": "activity",
   "fleetView": true,
-  "globalConcurrencyLimit": 3,
+  "globalConcurrencyLimit": 4,
   "maxActiveAsyncRunsPerSession": 3,
-  "maxSubagentSpawnsPerSession": 24,
-  "maxSubagentSpawnsPerRun": 6,
+  "capacity": {
+    "abandonedSlotReleaseAfterMs": 1200000
+  },
+  "maxSubagentSpawnsPerSession": 48,
+  "maxSubagentSpawnsPerRun": 12,
   "artifactDir": "session",
   "maxSubagentDepth": 1,
   "missions": {
@@ -24,19 +27,34 @@
     "resultDelivery": false
   },
   "parallel": {
-    "concurrency": 3,
-    "maxTasks": 6
+    "concurrency": 4,
+    "maxTasks": 12
   },
   "completionBatch": {
     "enabled": true
   },
   "control": {
     "enabled": true,
-    "needsAttentionAfterMs": 180000,
     "activeNoticeAfterMs": 300000,
-    "activeNoticeAfterTurns": 10,
-    "failedToolAttemptsBeforeAttention": 2,
-    "notifyOn": ["needs_attention", "active_long_running"],
-    "notifyChannels": ["event", "async", "intercom"]
+    "failedToolAttemptsBeforeAttention": 3,
+    "notifyOn": [
+      "needs_attention",
+      "active_long_running"
+    ],
+    "notifyChannels": [
+      "event",
+      "async",
+      "intercom"
+    ]
+  },
+  "disabledFeatures": [
+    "external-machines",
+    "panes",
+    "agent-management",
+    "tool-budgets",
+    "usage-budgets"
+  ],
+  "scheduledRuns": {
+    "enabled": false
   }
 }

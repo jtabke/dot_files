@@ -1,35 +1,35 @@
 ---
-description: Render a fresh-context scope, necessity, and correctness review contract
+description: Render an independent review of a specified candidate
 ---
-Review goal and assigned angle
+
+Review question
 {{goal}}
 
 Target
 - cwd/repository: {{cwd}}
-- diff, plan, files, or owning seam: {{target}}
-- approved behavior and governing evidence: {{evidence}}
+- exact candidate commit/patch, base, files, or owning seam: {{target}}
+- approved behavior, contracts, and governing evidence: {{evidence}}
 
-Constraints and non-goals
+Constraints
 {{constraints}}
 
-Authority
-Read-only review. Do not modify project/source files, stage, commit, push, publish, or expand scope.
-
-Review tests
-- Correctness: does the target satisfy the approved behavior and preserve required invariants?
-- Scope: does every changed file and behavior support approved behavior or an invariant?
-- Necessity: does every new maintenance obligation have evidence that reuse, modification, removal, or consolidation was insufficient?
-- Ownership: does the change use one existing owner, or does it create a parallel mechanism or hidden coupling?
-- Simplicity: can code, states, branches, wrappers, fixtures, or compatibility be removed without losing approved behavior or violating an invariant?
-- Clarity: do names express domain intent, and does each changed unit have one coherent purpose without mechanical fragmentation?
-A maintenance obligation is behavior, an interface, state, dependency, configuration, persisted data, abstraction, compatibility path, ownership boundary, background process, or fixture family that future contributors must maintain.
-
-Validation expectations
+Validation
 {{validation}}
 
-Required output
-Return only evidence-backed current findings, ordered by severity, with file/line references, the violated criterion, and the narrowest owning-boundary correction. Classify each finding as correctness, scope, necessity, ownership, or clarity. Do not propose optional improvements. Every finding must identify a concrete current risk to approved behavior, an invariant, or the scope envelope. State explicitly when there are no findings and name residual validation gaps.
-
-Stop rules
+Stop conditions
 {{stopRules}}
-Stop when the assigned angle has enough evidence. Do not continue into broad reconnaissance, redesign, or optional polish.
+
+Review read-only. Verify candidate identity before reviewing; report a mismatch
+instead of substituting another revision. Do not modify source, stage, commit,
+publish, or mutate shared services. Use only explicitly assigned validation resources.
+
+Check correctness, contract preservation, scope, and necessity. Identify new states,
+dependencies, compatibility paths, or abstractions without a required outcome, and
+parallel owners or hidden coupling that create a concrete current risk. Keep the
+review focused on the assigned behavior; do not turn it into redesign or polish.
+
+Return the candidate identity and evidence-backed findings by severity with file/line
+references, impact, and the narrowest correction. State when there are no findings.
+Name material validation gaps and unresolved assumptions. Re-review only accepted
+fixes and affected areas after a change; a clean review is not proof of pending
+integration checks. Stop when the assigned question has enough evidence.
