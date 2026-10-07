@@ -1,5 +1,18 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- $baseline := includeTemplate "pi-settings.json" . | fromJson -}}
+{{- if .isWSL -}}
+{{- $packages := list -}}
+{{- range index $baseline "packages" -}}
+{{- if not (and (kindIs "string" .) (eq . "../../Documents/Coding/pi-companion")) -}}
+{{- if and (kindIs "string" .) (eq . "git:git@github.com:jtabke/pi-extensions") -}}
+{{- $packages = append $packages (dict "source" . "extensions" (list "!extensions/ollama*/**")) -}}
+{{- else -}}
+{{- $packages = append $packages . -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $baseline = setValueAtPath "packages" $packages $baseline -}}
+{{- end -}}
 {{- if .chezmoi.stdin -}}
 {{- $current := fromJson .chezmoi.stdin -}}
 {{- if hasKey $current "lastChangelogVersion" -}}

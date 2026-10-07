@@ -174,6 +174,26 @@ check_kernel_classification 'WSL kernel is WSL' true \
 check_kernel_classification 'ordinary kernel is not WSL' false \
   '{"chezmoi":{"kernel":{"osrelease":"6.8.0-31-generic"}}}'
 
+# Exercise Pi's WSL filtering on every host, including runtime-state preservation.
+check_pi_platform_settings() {
+  local is_wsl=$1 rendered
+  rendered=$(chezmoi --source "$repo" --no-tty \
+    --override-data "{\"isWSL\":$is_wsl,\"chezmoi\":{\"stdin\":\"{\\\"lastChangelogVersion\\\":\\\"platform-sentinel\\\"}\"}}" \
+    execute-template < home/dot_pi/private_agent/modify_settings.json)
+  jq -e --argjson wsl "$is_wsl" --slurpfile baseline home/.chezmoitemplates/pi-settings.json '
+    .lastChangelogVersion == "platform-sentinel" and
+    if $wsl then
+      .packages == ($baseline[0].packages | map(
+        select(. != "../../Documents/Coding/pi-companion") |
+        if . == "git:git@github.com:jtabke/pi-extensions" then
+          {source: ., extensions: ["!extensions/ollama*/**"]}
+        else . end))
+    else .packages == $baseline[0].packages end
+  ' <<<"$rendered" >/dev/null
+}
+check check_pi_platform_settings true
+check check_pi_platform_settings false
+
 run_profile() {
   local name=$1 role=$2 desktop=$3
   local tmp dest baseline_dest cache config state dry second chezmoi_os is_wsl
@@ -238,6 +258,13 @@ run_profile() {
       return
     }
   check test -f "$baseline_dest/.pi/agent/settings.json"
+  if [[ "$is_wsl" == true ]]; then
+    check jq -e 'all(.packages[]; . != "../../Documents/Coding/pi-companion")' \
+      "$baseline_dest/.pi/agent/settings.json"
+  else
+    check jq -e 'any(.packages[]; . == "../../Documents/Coding/pi-companion")' \
+      "$baseline_dest/.pi/agent/settings.json"
+  fi
   check test "$(pi_agent_mode "$baseline_dest/.pi/agent")" = 700
   check jq -e --slurpfile baseline home/.chezmoitemplates/pi-settings.json \
     '.theme == $baseline[0].theme and .defaultProvider == $baseline[0].defaultProvider and .subagents.defaultModel == $baseline[0].subagents.defaultModel and .tuiMode == $baseline[0].tuiMode and (has("lastChangelogVersion") | not)' \
