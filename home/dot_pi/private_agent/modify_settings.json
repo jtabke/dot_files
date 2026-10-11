@@ -3,7 +3,7 @@
 {{- if .isWSL -}}
 {{- $packages := list -}}
 {{- range index $baseline "packages" -}}
-{{- if not (and (kindIs "string" .) (eq . "../../Documents/Coding/pi-companion")) -}}
+{{- if not (and (kindIs "string" .) (eq . "git:github.com/jtabke/pi-companion")) -}}
 {{- if and (kindIs "string" .) (eq . "git:git@github.com:jtabke/pi-extensions") -}}
 {{- $packages = append $packages (dict "source" . "extensions" (list "!extensions/ollama*/**")) -}}
 {{- else -}}

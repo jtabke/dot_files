@@ -184,7 +184,7 @@ check_pi_platform_settings() {
     .lastChangelogVersion == "platform-sentinel" and
     if $wsl then
       .packages == ($baseline[0].packages | map(
-        select(. != "../../Documents/Coding/pi-companion") |
+        select(. != "git:github.com/jtabke/pi-companion") |
         if . == "git:git@github.com:jtabke/pi-extensions" then
           {source: ., extensions: ["!extensions/ollama*/**"]}
         else . end))
@@ -259,10 +259,10 @@ run_profile() {
     }
   check test -f "$baseline_dest/.pi/agent/settings.json"
   if [[ "$is_wsl" == true ]]; then
-    check jq -e 'all(.packages[]; . != "../../Documents/Coding/pi-companion")' \
+    check jq -e 'all(.packages[]; . != "git:github.com/jtabke/pi-companion")' \
       "$baseline_dest/.pi/agent/settings.json"
   else
-    check jq -e 'any(.packages[]; . == "../../Documents/Coding/pi-companion")' \
+    check jq -e 'any(.packages[]; . == "git:github.com/jtabke/pi-companion")' \
       "$baseline_dest/.pi/agent/settings.json"
   fi
   check test "$(pi_agent_mode "$baseline_dest/.pi/agent")" = 700

@@ -16,7 +16,7 @@
     "git:git@github.com:jtabke/pi-extensions",
     "git:git@github.com:jtabke/pi-vim",
     "git:github.com/lolipopshock/pi-clm",
-    "../../Documents/Coding/pi-companion",
+    "git:github.com/jtabke/pi-companion",
     {
       "source": "git:github.com/nicobailon/pi-subagents@main",
       "skills": [
