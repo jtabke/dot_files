@@ -5,6 +5,7 @@
 {{- $useAerospace := and (eq .chezmoi.os "darwin") (eq .role "workstation") (or (eq .desktop "auto") (eq .desktop "aerospace")) -}}
 {{- if not $useHyprland }}
 .config/hypr
+.config/waybar
 {{- end }}
 {{- if not $useAerospace }}
 .config/aerospace

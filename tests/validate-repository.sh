@@ -144,6 +144,23 @@ check_non_zle_zsh_startup() {
 }
 check check_non_zle_zsh_startup
 
+# Keep the existing Waybar tests outside source state. Decode helpers into a
+# disposable directory so tests never import or execute the live-home scripts.
+check_waybar_helpers() {
+  local tmp file result=0
+  tmp=$(mktemp -d)
+  for file in home/dot_config/waybar/scripts/executable_*.py; do
+    cp "$file" "$tmp/${file##*/executable_}"
+  done
+  cp tests/waybar/test_*.py "$tmp/"
+  python3 -c 'import ast,pathlib,sys; [ast.parse(p.read_text(), filename=str(p)) for p in pathlib.Path(sys.argv[1]).glob("*.py")]' "$tmp" || result=$?
+  HOME="$tmp" XDG_CACHE_HOME="$tmp/cache" PYTHONDONTWRITEBYTECODE=1 \
+    python3 -m unittest discover -s "$tmp" -p 'test_*.py' || result=$?
+  rm -rf "$tmp"
+  return "$result"
+}
+check check_waybar_helpers
+
 # Parse JSON and TOML with installed standard tools.
 while IFS= read -r -d '' file; do
   check jq empty "$file"
@@ -245,7 +262,7 @@ run_profile() {
   fi
 
   # Apply once without a pre-existing Pi target to prove the baseline does not
-  # invent the runtime-owned changelog version. Use a separate destination so
+  # invent runtime-owned changelog or device identifiers. Use a separate destination so
   # the main dry-run still previews the complete profile before seeded apply.
   baseline_dest=$tmp/baseline-destination
   mkdir -p "$baseline_dest"
@@ -267,14 +284,14 @@ run_profile() {
   fi
   check test "$(pi_agent_mode "$baseline_dest/.pi/agent")" = 700
   check jq -e --slurpfile baseline home/.chezmoitemplates/pi-settings.json \
-    '.theme == $baseline[0].theme and .defaultProvider == $baseline[0].defaultProvider and .subagents.defaultModel == $baseline[0].subagents.defaultModel and .tuiMode == $baseline[0].tuiMode and (has("lastChangelogVersion") | not)' \
+    '.theme == $baseline[0].theme and .defaultProvider == $baseline[0].defaultProvider and .subagents.defaultModel == $baseline[0].subagents.defaultModel and .tuiMode == $baseline[0].tuiMode and (has("lastChangelogVersion") | not) and (has("deviceId") | not)' \
     "$baseline_dest/.pi/agent/settings.json"
 
   # Seed obsolete files and Pi runtime state to prove source attributes converge
-  # an existing home without overwriting the runtime-owned changelog version.
+  # an existing home without overwriting runtime-owned changelog/device state.
   mkdir -p "$dest/.config/nvim/lua/plugins" "$dest/.config/nvim/after/ftplugin" \
     "$dest/.pi/agent"
-  printf '%s\n' '{"lastChangelogVersion":"validation-sentinel","theme":"runtime-value"}' \
+  printf '%s\n' '{"lastChangelogVersion":"validation-sentinel","deviceId":"device-sentinel","theme":"runtime-value"}' \
     >"$dest/.pi/agent/settings.json"
   touch "$dest/.aerospace.toml" \
     "$dest/.config/nvim/lua/plugins/avante.lua" \
@@ -323,8 +340,17 @@ run_profile() {
   check_not test -e "$dest/.aerospace.toml"
   if [[ "$expected_hyprland" == true ]]; then
     check test -f "$dest/.config/hypr/hyprland.lua"
+    check python3 -c 'import json,sys; json.loads("".join(line for line in open(sys.argv[1]) if not line.lstrip().startswith("//")))' "$dest/.config/waybar/config.jsonc"
+    check test -f "$dest/.config/waybar/style.css"
+    check test -f "$dest/.config/waybar/mocha.css"
+    for helper in wifi_waybar bluetooth_waybar tailscale_waybar power_menu updates_waybar; do
+      check test -x "$dest/.config/waybar/scripts/$helper.py"
+    done
+    check_not test -e "$dest/.config/waybar/scripts/test_waybar_helpers.py"
+    check_not test -e "$dest/.config/waybar/scripts/test_tailscale_waybar.py"
   else
     check_not test -e "$dest/.config/hypr"
+    check_not test -e "$dest/.config/waybar"
   fi
   if [[ "$expected_aerospace" == true ]]; then
     check test -f "$dest/.config/aerospace/aerospace.toml"
@@ -345,7 +371,7 @@ run_profile() {
   check test -f "$dest/.pi/agent/settings.json"
   check test "$(pi_agent_mode "$dest/.pi/agent")" = 700
   check_not test -x "$dest/.pi/agent/settings.json"
-  check jq -e '.lastChangelogVersion == "validation-sentinel"' \
+  check jq -e '.lastChangelogVersion == "validation-sentinel" and .deviceId == "device-sentinel"' \
     "$dest/.pi/agent/settings.json"
   check jq empty "$dest/.pi/agent/settings.json"
   check jq -e --slurpfile baseline home/.chezmoitemplates/pi-settings.json \

@@ -1,0 +1,189 @@
+// -*- mode: jsonc -*-
+{
+    "layer": "top",
+    "position": "top",
+    "spacing": 4,
+
+    "modules-left": [
+        "hyprland/workspaces"
+    ],
+    "modules-center": [
+        "hyprland/submap",
+        "hyprland/window"
+    ],
+    "modules-right": [
+        "privacy",
+        "pulseaudio",
+        "custom/wifi",
+        "custom/bluetooth",
+        "custom/tailscale",
+        "cpu",
+        "memory",
+        "temperature",
+        "custom/updates",
+        "clock",
+        "idle_inhibitor",
+        "tray",
+        "custom/power"
+    ],
+
+    "hyprland/workspaces": {
+        "sort-by": "number"
+    },
+    "hyprland/window": {
+        "icon": true,
+        "icon-size": 18,
+        "max-length": 60,
+        "separate-outputs": true
+    },
+    "hyprland/submap": {
+        "format": "  {}",
+        "max-length": 20,
+        "tooltip": false
+    },
+
+    "privacy": {
+        "icon-spacing": 4,
+        "icon-size": 15,
+        "transition-duration": 250,
+        "modules": [
+            {
+                "type": "screenshare",
+                "tooltip": true,
+                "tooltip-icon-size": 18
+            },
+            {
+                "type": "audio-out",
+                "tooltip": true,
+                "tooltip-icon-size": 18
+            },
+            {
+                "type": "audio-in",
+                "tooltip": true,
+                "tooltip-icon-size": 18
+            }
+        ]
+    },
+
+    "pulseaudio": {
+        "scroll-step": 2,
+        "format": "{volume}% {icon}",
+        "format-bluetooth": "{volume}% {icon} ",
+        "format-bluetooth-muted": "󰝟 ",
+        "format-muted": "󰝟",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "󰋎",
+            "headset": "󰋎",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", "", ""]
+        },
+        "on-click": "pavucontrol",
+        "on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "tooltip": true
+    },
+
+    "custom/wifi": {
+        "exec": "~/.config/waybar/scripts/wifi_waybar.py status",
+        "return-type": "json",
+        "interval": 15,
+        "signal": 6,
+        "on-click": "sh -c 'ghostty -e impala'",
+        "on-click-right": "~/.config/waybar/scripts/wifi_waybar.py toggle",
+        "tooltip": true
+    },
+    "custom/bluetooth": {
+        "exec": "~/.config/waybar/scripts/bluetooth_waybar.py status",
+        "return-type": "json",
+        "interval": 15,
+        "signal": 7,
+        "on-click": "sh -c 'ghostty -e bluetui'",
+        "on-click-right": "~/.config/waybar/scripts/bluetooth_waybar.py toggle",
+        "tooltip": true
+    },
+    "custom/tailscale": {
+        "exec": "~/.config/waybar/scripts/tailscale_waybar.py status",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 8,
+        "on-click": "~/.config/waybar/scripts/tailscale_waybar.py menu",
+        "on-click-right": "~/.config/waybar/scripts/tailscale_waybar.py admin",
+        "tooltip": true
+    },
+
+    "cpu": {
+        "format": "{usage}% ",
+        "interval": 5,
+        "tooltip": true
+    },
+    "memory": {
+        "format": "{}% ",
+        "interval": 5,
+        "tooltip": true
+    },
+    "temperature": {
+        "critical-threshold": 80,
+        "format": "{temperatureC}°C {icon}",
+        "format-icons": ["", "", ""],
+        "interval": 5,
+        "tooltip": true
+    },
+    "custom/updates": {
+        "exec": "~/.config/waybar/scripts/updates_waybar.py status",
+        "return-type": "json",
+        "interval": 3600,
+        "signal": 9,
+        "on-click": "~/.config/waybar/scripts/updates_waybar.py upgrade",
+        "on-click-right": "~/.config/waybar/scripts/updates_waybar.py launch-refresh",
+        "tooltip": true
+    },
+
+    "clock": {
+        "interval": 60,
+        "format": "{:%I:%M %p  %b %d}",
+        "format-alt": "{:%A, %B %d, %Y  %H:%M}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "month",
+            "weeks-pos": "right",
+            "on-scroll": 1,
+            "format": {
+                "months": "<span color='#fab387'><b>{}</b></span>",
+                "days": "<span color='#cdd6f4'>{}</span>",
+                "weeks": "<span color='#6c7086'>W{}</span>",
+                "weekdays": "<span color='#89b4fa'><b>{}</b></span>",
+                "today": "<span color='#f38ba8'><b><u>{}</u></b></span>"
+            }
+        },
+        "actions": {
+            "on-click-right": "mode",
+            "on-scroll-up": "shift_up",
+            "on-scroll-down": "shift_down"
+        }
+    },
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "",
+            "deactivated": ""
+        },
+        "start-activated": false,
+        "timeout": 120,
+        "tooltip-format-activated": "Idle lock and display sleep inhibited (click to restore)",
+        "tooltip-format-deactivated": "Hypridle active (click for presentation mode)"
+    },
+    "tray": {
+        "icon-size": 18,
+        "spacing": 6
+    },
+    "custom/power": {
+        "format": "⏻",
+        "on-click": "~/.config/waybar/scripts/power_menu.py menu",
+        "on-click-right": "~/.config/waybar/scripts/power_menu.py lock",
+        "tooltip": true,
+        "tooltip-format": "Session menu\nRight-click to lock"
+    }
+}

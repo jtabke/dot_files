@@ -15,8 +15,10 @@
 {{- end -}}
 {{- if .chezmoi.stdin -}}
 {{- $current := fromJson .chezmoi.stdin -}}
-{{- if hasKey $current "lastChangelogVersion" -}}
-{{- $baseline = setValueAtPath "lastChangelogVersion" (index $current "lastChangelogVersion") $baseline -}}
+{{- range list "lastChangelogVersion" "deviceId" -}}
+{{- if hasKey $current . -}}
+{{- $baseline = setValueAtPath . (index $current .) $baseline -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{ $baseline | toPrettyJson -}}

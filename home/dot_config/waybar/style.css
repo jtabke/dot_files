@@ -1,0 +1,237 @@
+@import "mocha.css";
+
+* {
+  min-height: 0;
+  border: none;
+  font-family: "Hack Nerd Font", "Font Awesome 7 Free", sans-serif;
+  font-size: 13px;
+}
+
+window#waybar {
+  background-color: rgba(30, 30, 46, 0.88);
+  color: @text;
+  transition: background-color 0.15s ease;
+}
+
+window#waybar.hidden {
+  opacity: 0.25;
+}
+
+window#waybar.fullscreen {
+  background-color: rgba(30, 30, 46, 0.45);
+}
+
+tooltip {
+  background-color: @base;
+  border: 1px solid @surface1;
+  border-radius: 8px;
+}
+
+tooltip label {
+  color: @text;
+  padding: 4px;
+}
+
+menu {
+  background-color: @base;
+  border: 1px solid @surface1;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+menuitem {
+  color: @text;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+menuitem:hover {
+  background-color: @surface0;
+}
+
+button {
+  color: @text;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 7px;
+}
+
+button:hover {
+  background-color: @surface0;
+  box-shadow: none;
+}
+
+#workspaces {
+  margin: 2px 4px;
+}
+
+#workspaces button {
+  min-width: 24px;
+  padding: 0 7px;
+  color: @overlay1;
+}
+
+#workspaces button:hover {
+  color: @text;
+}
+
+#workspaces button.active {
+  color: @mauve;
+  background-color: @surface0;
+  box-shadow: inset 0 -2px @mauve;
+}
+
+#workspaces button.visible {
+  color: @blue;
+}
+
+#workspaces button.urgent {
+  color: @crust;
+  background-color: @red;
+}
+
+#submap {
+  margin: 2px 4px;
+  padding: 0 10px;
+  color: @crust;
+  background-color: @peach;
+  border-radius: 7px;
+}
+
+#window {
+  margin: 0 8px;
+  color: @subtext1;
+}
+
+#privacy,
+#pulseaudio,
+#custom-wifi,
+#custom-bluetooth,
+#custom-tailscale,
+#cpu,
+#memory,
+#temperature,
+#custom-updates,
+#clock,
+#idle_inhibitor,
+#tray,
+#custom-power {
+  margin: 2px 0;
+  padding: 0 8px;
+  color: @text;
+  border-radius: 7px;
+}
+
+#pulseaudio:hover,
+#custom-wifi:hover,
+#custom-bluetooth:hover,
+#custom-tailscale:hover,
+#custom-updates:hover,
+#clock:hover,
+#idle_inhibitor:hover,
+#custom-power:hover {
+  background-color: @surface0;
+}
+
+#pulseaudio.muted {
+  color: @subtext0;
+  background-color: @surface0;
+}
+
+#custom-wifi.off,
+#custom-wifi.disconnected,
+#custom-bluetooth.off,
+#custom-tailscale.stopped {
+  color: @subtext0;
+  background-color: @surface0;
+}
+
+#custom-bluetooth.connected {
+  color: @crust;
+  background-color: @blue;
+}
+
+#custom-tailscale.connected {
+  color: @crust;
+  background-color: @green;
+}
+
+#custom-tailscale.exit-node {
+  color: @crust;
+  background-color: @blue;
+}
+
+#custom-wifi.error,
+#custom-bluetooth.error,
+#custom-tailscale.needs-login,
+#custom-tailscale.expiring,
+#custom-tailscale.error,
+#custom-updates.error {
+  color: @crust;
+  background-color: @red;
+}
+
+#temperature.critical {
+  color: @crust;
+  background-color: @red;
+}
+
+#custom-updates.updates {
+  color: @crust;
+  background-color: @peach;
+}
+
+#custom-updates.none,
+#custom-updates.checking {
+  color: @overlay1;
+}
+
+#idle_inhibitor.deactivated {
+  color: @overlay1;
+}
+
+#idle_inhibitor.activated {
+  color: @crust;
+  background-color: @yellow;
+}
+
+#tray {
+  background-color: @surface0;
+}
+
+#tray > .passive {
+  -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+  -gtk-icon-effect: highlight;
+  background-color: @red;
+}
+
+#custom-power {
+  padding-right: 10px;
+  color: @red;
+  font-size: 15px;
+}
+
+#privacy {
+  padding: 0 4px;
+}
+
+#privacy-item {
+  padding: 0 6px;
+  color: @crust;
+  border-radius: 7px;
+}
+
+#privacy-item.screenshare {
+  background-color: @red;
+}
+
+#privacy-item.audio-in {
+  background-color: @green;
+}
+
+#privacy-item.audio-out {
+  background-color: @blue;
+}

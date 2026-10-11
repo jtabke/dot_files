@@ -76,8 +76,8 @@ Chezmoi source names encode target attributes:
 
 The Pi agent source uses `private_agent`, so `~/.pi/agent` is mode `0700`.
 Its `modify_settings.json` applies the baseline in `.chezmoitemplates/pi-settings.json`
-while preserving Pi's runtime-managed top-level `lastChangelogVersion` when it
-already exists. The settings target remains a non-executable JSON file.
+while preserving Pi's runtime-managed top-level `lastChangelogVersion` and
+machine-local `deviceId` when they already exist. The settings target remains a non-executable JSON file.
 
 Use `chezmoi source-path TARGET` when the encoded source path is unclear.
 
@@ -260,6 +260,48 @@ An unexpected `~/.config/hypr/hyprland.conf` can select the Hyprlang provider.
 Moving that file does not affect open windows, but changing from Hyprlang to the
 Lua provider requires a compositor restart and will end the graphical session.
 Save all work before restarting.
+
+## Desktop prerequisites
+
+The native Linux Hyprland profile also manages `~/.config/waybar`: the bar
+configuration, Catppuccin styles, and Wi-Fi, Bluetooth, Tailscale, update, and
+power helpers. Their existing unit tests stay in `tests/waybar`, outside chezmoi
+source state. Validation runs these tests on temporary copies with mocked system
+actions; it does not change networking, install updates, lock, or end the session.
+
+Install desktop dependencies separately; the optional package adapter installs
+only the CLI tools listed below. This desktop uses Waybar, Hyprland, Hypridle,
+Hyprlock, Hyprpaper, Ghostty, Fuzzel, Nemo, wlsunset, and Python 3. The bar's
+Wi-Fi controls require iwd, `busctl`, `ip`, and Impala; Bluetooth uses
+`bluetoothctl` and Bluetui; Tailscale needs its client and daemon. Audio controls
+use `wpctl` and Pavucontrol. Menus use Fuzzel, notifications use `notify-send`,
+and clipboard/browser actions use `wl-copy` and `xdg-open`. The update helper
+is Arch-specific: it uses `checkupdates` from pacman-contrib and opens
+`sudo pacman -Syu` in Ghostty only when clicked. Install the Hack Nerd Font and
+Font Awesome fonts for the configured icons. The imported bar is not a generic
+NetworkManager or cross-distribution configuration.
+
+Hyprland starts Hyprpaper, but wallpaper selection remains machine-local.
+Create the unmanaged `~/.config/hypr/hyprpaper.conf` and choose an image that
+exists on that host. The current workstation uses
+`~/Pictures/Backgrounds/pexels-oleksandr-tiupa-192136.jpg`; neither that file nor
+its selection is installed by this repository.
+
+## SSH-agent prerequisite
+
+The Pi package list includes Git repositories accessed over SSH. Before Pi
+installs those packages, configure GitHub SSH access and make the intended agent
+available to the shell. Chezmoi does not create an SSH-agent service or install keys.
+
+This Linux workstation has an unmanaged `~/.config/zsh/.zshenv` containing:
+
+```sh
+export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
+```
+
+That setting assumes an agent already listens on the named socket. Keep it local:
+verify the socket and agent startup on each host instead of copying the Linux path
+to macOS or WSL. Preserve SSH forwarding settings on hosts that use them.
 
 ## Git identity and secrets
 
