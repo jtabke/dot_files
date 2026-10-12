@@ -1,6 +1,6 @@
 {
   "defaultModel": "gpt-6.1-sol",
-  "defaultProvider": "openai-codex",
+  "defaultProvider": "openai",
   "defaultThinkingLevel": "medium",
   "defaultTools": [
     "+codemode"
@@ -12,8 +12,12 @@
   },
   "packages": [
     "npm:pi-web-access",
-    "npm:pi-mcp-adapter",
-    "git:git@github.com:jtabke/pi-extensions",
+    {
+      "source": "git:git@github.com:jtabke/pi-extensions",
+      "extensions": [
+        "!extensions/ollama*/**"
+      ]
+    },
     "git:git@github.com:jtabke/pi-vim",
     "git:github.com/lolipopshock/pi-clm",
     "git:github.com/jtabke/pi-companion",
@@ -28,7 +32,7 @@
     "agentOverrides": {
       "delegate": {
         "defaultContext": "fresh",
-        "model": "openai-codex/gpt-6.1-sol",
+        "model": "openai/gpt-6.1-sol",
         "thinking": "low",
         "inheritGlobalContext": false,
         "inheritSkills": false
@@ -36,7 +40,7 @@
       "oracle": {
         "acceptanceRole": "read-only",
         "defaultContext": "fork",
-        "model": "openai-codex/gpt-6.1-sol",
+        "model": "openai/gpt-6.1-sol",
         "thinking": "high",
         "inheritGlobalContext": false,
         "inheritSkills": false
@@ -45,7 +49,7 @@
         "acceptanceRole": "read-only",
         "defaultContext": "fresh",
         "inheritProjectContext": false,
-        "model": "openai-codex/gpt-6-luna",
+        "model": "openai/gpt-6-luna",
         "thinking": "high",
         "inheritGlobalContext": false,
         "inheritSkills": false
@@ -53,7 +57,7 @@
       "reviewer": {
         "acceptanceRole": "read-only",
         "defaultContext": "fresh",
-        "model": "openai-codex/gpt-6.1-sol",
+        "model": "openai/gpt-6.1-sol",
         "thinking": "medium",
         "inheritGlobalContext": false,
         "inheritSkills": false
@@ -61,7 +65,7 @@
       "scout": {
         "acceptanceRole": "read-only",
         "defaultContext": "fresh",
-        "model": "openai-codex/gpt-6-luna",
+        "model": "openai/gpt-6-luna",
         "thinking": "medium",
         "inheritGlobalContext": false,
         "inheritSkills": false
@@ -69,18 +73,15 @@
       "worker": {
         "acceptanceRole": "writer",
         "defaultContext": "fresh",
-        "model": "openai-codex/gpt-6.1-sol",
+        "model": "openai/gpt-6.1-sol",
         "thinking": "medium",
         "inheritGlobalContext": false,
         "inheritSkills": false
       }
     },
-    "defaultModel": "openai-codex/gpt-6.1-sol",
+    "defaultModel": "openai/gpt-6.1-sol",
     "defaultThinking": "medium"
   },
   "theme": "dark",
-  "tuiMode": "fullscreen",
-  "extensions": [
-    "-builtin:mcp"
-  ]
+  "tuiMode": "fullscreen"
 }
