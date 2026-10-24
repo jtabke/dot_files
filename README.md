@@ -110,6 +110,11 @@ imported AeroSpace config does not start it or send workspace-change triggers.
 WSL2 detection uses the kernel release. WSL2 is always treated as shell/CLI
 only, even when workstation options are selected.
 
+For WSL2, answer `shell`, `none`, then choose whether to install missing CLI
+packages and whether to auto-attach tmux. Enabling package installation does not
+enable desktop packages: Fuzzel is only selected for native Linux workstations
+using `auto` or `hyprland`. The same selection controls its configuration.
+
 ## Validate without touching the live home
 
 Requirements for the full validation suite include `bash`, `zsh`, `chezmoi`,
@@ -332,8 +337,13 @@ install Git, Neovim, zsh, tmux, ripgrep, and fzf through:
 - Pacman, with root and sudo handling
 - APT
 
-The script is disabled when `installPackages=false`. Repository validation does
-not execute it. Review its rendered output before enabling package changes.
+Fuzzel is additionally installed only for native Linux workstations using the
+`auto` or `hyprland` desktop profile, never for WSL2, shell-only profiles, or
+`desktop=none`.
+
+The script is disabled when `installPackages=false`. Repository validation
+renders package-selection regression cases but does not execute the adapter.
+Review its rendered output before enabling package changes.
 
 ## Git workflow
 

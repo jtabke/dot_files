@@ -6,6 +6,7 @@
 {{- if not $useHyprland }}
 .config/hypr
 .config/waybar
+.config/fuzzel
 {{- end }}
 {{- if not $useAerospace }}
 .config/aerospace

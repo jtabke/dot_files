@@ -70,6 +70,7 @@ check grep -qF -- '-z "${SSH_TTY-}"' home/dot_config/zsh/dot_zprofile.tmpl
 check grep -qF '"$(tty 2>/dev/null)" == /dev/tty1' home/dot_config/zsh/dot_zprofile.tmpl
 check grep -qF '[[ -o zle && -z "${ZSH_EXECUTION_STRING-}" ]]' home/dot_config/zsh/30-platform.zsh
 check grep -qF '.config/hypr' home/.chezmoiignore
+check grep -qF '.config/fuzzel' home/.chezmoiignore
 check grep -qF 'hyprland.local.lua' home/dot_config/hypr/hyprland.lua
 check test ! -e home/dot_config/hypr/hyprland.local.lua
 check test -f docs/hyprland-local.example.lua
@@ -211,10 +212,39 @@ check_pi_platform_settings() {
 check check_pi_platform_settings true
 check check_pi_platform_settings false
 
+# Render Linux/WSL profiles even on macOS. Never execute the package adapter.
+check_package_profile() {
+  local name=$1 os=$2 kernel=$3 role=$4 desktop=$5 enabled=$6 expected=$7
+  local override rendered
+  override=$(jq -nc --arg os "$os" --arg kernel "$kernel" \
+    --arg role "$role" --arg desktop "$desktop" --argjson enabled "$enabled" \
+    '{chezmoi:{os:$os,kernel:{osrelease:$kernel}},role:$role,desktop:$desktop,installPackages:$enabled,osReleaseID:"ubuntu"}')
+  rendered=$(chezmoi --source "$repo" --no-tty --override-data "$override" \
+    execute-template "$(<home/run_onchange_install-packages.sh.tmpl)")
+  check bash -n <<<"$rendered"
+  if [[ "$expected" == true ]]; then
+    check grep -qF 'packages+=(fuzzel:fuzzel)' <<<"$rendered"
+  else
+    check_not grep -qF 'fuzzel:fuzzel' <<<"$rendered"
+  fi
+  if [[ "$enabled" == false ]]; then
+    check grep -qF 'if [[ "false" != "true" ]]; then' <<<"$rendered"
+  fi
+  printf 'PASS: %s package profile rendered (not executed)\n' "$name"
+}
+check_package_profile linux-auto linux 6.8.0 workstation auto true true
+check_package_profile linux-hyprland linux 6.8.0 workstation hyprland true true
+check_package_profile linux-shell linux 6.8.0 shell auto true false
+check_package_profile linux-none linux 6.8.0 workstation none true false
+check_package_profile wsl-shell linux 6.1-WSL2 shell none true false
+check_package_profile wsl-workstation linux 5.15-MICROSOFT workstation hyprland true false
+check_package_profile macos darwin 24.0 workstation auto true false
+check_package_profile packages-disabled linux 6.1-WSL2 shell none false false
+
 run_profile() {
   local name=$1 role=$2 desktop=$3
   local tmp dest baseline_dest cache config state dry second chezmoi_os is_wsl
-  local expected_hyprland=false expected_aerospace=false expected_sketchybar=false
+  local expected_hyprland=false expected_fuzzel=false expected_aerospace=false expected_sketchybar=false
   tmp=$(mktemp -d)
   dest=$tmp/destination
   cache=$tmp/cache
@@ -247,6 +277,7 @@ run_profile() {
     && "$role" == workstation \
     && ("$desktop" == auto || "$desktop" == hyprland) ]]; then
     expected_hyprland=true
+    expected_fuzzel=true
   fi
   if [[ "$chezmoi_os" == darwin && "$is_wsl" == false \
     && "$role" == workstation \
@@ -308,6 +339,11 @@ run_profile() {
   else
     [[ "$dry" != *'.config/hypr/hyprland.lua'* ]] || fail "$name dry-run excludes Hyprland"
   fi
+  if [[ "$expected_fuzzel" == true ]]; then
+    [[ "$dry" == *'.config/fuzzel/fuzzel.ini'* ]] || fail "$name dry-run selects Fuzzel"
+  else
+    [[ "$dry" != *'.config/fuzzel/fuzzel.ini'* ]] || fail "$name dry-run excludes Fuzzel"
+  fi
   if [[ "$expected_aerospace" == true ]]; then
     [[ "$dry" == *'.config/aerospace/aerospace.toml'* ]] || fail "$name dry-run selects AeroSpace"
   else
@@ -351,6 +387,11 @@ run_profile() {
   else
     check_not test -e "$dest/.config/hypr"
     check_not test -e "$dest/.config/waybar"
+  fi
+  if [[ "$expected_fuzzel" == true ]]; then
+    check test -f "$dest/.config/fuzzel/fuzzel.ini"
+  else
+    check_not test -e "$dest/.config/fuzzel"
   fi
   if [[ "$expected_aerospace" == true ]]; then
     check test -f "$dest/.config/aerospace/aerospace.toml"
