@@ -1,4 +1,8 @@
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if vim.fn.has("nvim-0.11.3") == 0 then
+	vim.notify("This configuration requires Neovim >= 0.11.3. Run dotfiles-setup --check.", vim.log.levels.ERROR)
+	return
+end
 if not vim.uv.fs_stat(lazypath) then
 	vim.fn.system({
 		"git",
@@ -8,6 +12,10 @@ if not vim.uv.fs_stat(lazypath) then
 		"--branch=stable", -- latest stable release
 		lazypath,
 	})
+	if vim.v.shell_error ~= 0 then
+		vim.notify("Plugin manager download failed. Check Git/network access, then retry Neovim.", vim.log.levels.ERROR)
+		return
+	end
 end
 vim.opt.rtp:prepend(lazypath)
 

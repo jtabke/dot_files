@@ -91,13 +91,14 @@ check_not grep -qF 'SSH_CONNECTION' home/dot_config/zsh/90-tmux.zsh.tmpl
 check grep -qF 'tmux new-session -A -s default' home/dot_config/zsh/90-tmux.zsh.tmpl
 check_not grep -qF 'exec tmux' home/dot_config/zsh/90-tmux.zsh.tmpl
 check grep -qF 'path = ~/.config/git/user.inc' home/dot_gitconfig.tmpl
-check grep -qF 'command -v brew' home/run_onchange_install-packages.sh.tmpl
-check grep -qF '/opt/homebrew/bin/brew' home/run_onchange_install-packages.sh.tmpl
-check grep -qF '/usr/local/bin/brew' home/run_onchange_install-packages.sh.tmpl
-check grep -qF 'EUID == 0' home/run_onchange_install-packages.sh.tmpl
+check grep -qF 'command -v brew' home/.chezmoitemplates/setup.sh.tmpl
+check grep -qF '/opt/homebrew/bin/brew' home/.chezmoitemplates/setup.sh.tmpl
+check grep -qF '/usr/local/bin/brew' home/.chezmoitemplates/setup.sh.tmpl
+check grep -qF 'EUID != 0' home/.chezmoitemplates/setup.sh.tmpl
 check grep -qF 'minimumReleaseAge = 604800' home/dot_bunfig.toml
 check_not grep -qF 'minimumReleageAge' home/dot_bunfig.toml
-check grep -qF 'sudo failed while running Pacman' home/run_onchange_install-packages.sh.tmpl
+check grep -qF 'Package installation requires root or sudo.' home/.chezmoitemplates/setup.sh.tmpl
+check python3 tests/test-setup.py
 check test -f home/dot_config/kitty/symlink_theme.conf
 check test "$(cat home/dot_config/kitty/symlink_theme.conf)" = ./kitty-themes/Galaxy.conf
 check test ! -e home/dot_config/kitty/theme.conf
@@ -127,7 +128,6 @@ check check_no_likely_secrets
 check_non_zle_zsh_startup() {
   local tmp output
   tmp=$(mktemp -d)
-  mkdir -p "$tmp/.cache/zsh"
   if ! HOME="$tmp" ZDOTDIR="$tmp" DOTFILES_REPO="$repo" zsh -f -ic \
     'source "$DOTFILES_REPO/home/dot_config/zsh/30-platform.zsh"; print -r -- NON_ZLE_STARTUP_OK' \
     >"$tmp/stdout" 2>"$tmp/stderr"; then
@@ -212,7 +212,7 @@ check_pi_platform_settings() {
 check check_pi_platform_settings true
 check check_pi_platform_settings false
 
-# Render Linux/WSL profiles even on macOS. Never execute the package adapter.
+# Render Linux/WSL profiles even on macOS. Execution tests use mocked adapters.
 check_package_profile() {
   local name=$1 os=$2 kernel=$3 role=$4 desktop=$5 enabled=$6 expected=$7
   local override rendered
@@ -227,9 +227,7 @@ check_package_profile() {
   else
     check_not grep -qF 'fuzzel:fuzzel' <<<"$rendered"
   fi
-  if [[ "$enabled" == false ]]; then
-    check grep -qF 'if [[ "false" != "true" ]]; then' <<<"$rendered"
-  fi
+  check grep -qF "install_enabled=$enabled" <<<"$rendered"
   printf 'PASS: %s package profile rendered (not executed)\n' "$name"
 }
 check_package_profile linux-auto linux 6.8.0 workstation auto true true
@@ -252,8 +250,18 @@ run_profile() {
   state=$tmp/state.db
   mkdir -p "$dest" "$cache"
 
-  # A clean init owns these prompts. Answers are piped to stdin with no TTY.
-  printf '%s\n%s\nfalse\nfalse\n' "$role" "$desktop" \
+  # Only ask relevant questions: WSL skips both role and desktop; shell skips desktop.
+  local kernel answers
+  kernel=$(uname -r | tr '[:upper:]' '[:lower:]')
+  if [[ "$kernel" == *microsoft* || "$kernel" == *wsl* ]]; then
+    role=shell; desktop=none
+    answers=$(printf 'false\nfalse\n')
+  elif [[ "$role" == shell ]]; then
+    answers=$(printf '%s\nfalse\nfalse\n' "$role")
+  else
+    answers=$(printf '%s\n%s\nfalse\nfalse\n' "$role" "$desktop")
+  fi
+  printf '%s\n' "$answers" \
     | chezmoi --source "$repo" --destination "$dest" --cache "$cache" \
       --config "$config" --persistent-state "$state" --no-tty init \
       >"$tmp/init.out" 2>"$tmp/init.err" || {
@@ -368,6 +376,8 @@ run_profile() {
   [[ -z "$second" ]] || fail "$name second apply/diff is clean"
 
   check test -f "$dest/.zshenv"
+  check test -x "$dest/.local/bin/dotfiles-setup"
+  check bash -n "$dest/.local/bin/dotfiles-setup"
   check test -f "$dest/.config/nvim/init.lua"
   check test -f "$dest/.npmrc"
   check grep -qF 'min-release-age=3' "$dest/.npmrc"

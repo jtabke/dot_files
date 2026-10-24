@@ -83,12 +83,14 @@ Use `chezmoi source-path TARGET` when the encoded source path is unclear.
 
 ## Machine profiles
 
-A clean initialization asks four questions once:
+Initialization detects the platform and asks only relevant questions once.
+WSL automatically selects `shell` / `none`; other shell profiles skip the desktop
+question. Workstations see only desktops supported on their OS:
 
 | Setting | Values | Default guidance |
 | --- | --- | --- |
-| `role` | `workstation`, `shell` | Use `shell` on servers and WSL2 |
-| `desktop` | `auto`, `hyprland`, `aerospace`, `none` | Use `auto` on a workstation |
+| `role` | `workstation`, `shell` | WSL is always `shell`; use `shell` on servers |
+| `desktop` | Linux: `auto`, `hyprland`, `none`; macOS: `auto`, `aerospace`, `none` | Shell/WSL implies `none` |
 | `installPackages` | `true`, `false` | Keep `false` until reviewed |
 | `autoTmux` | `true`, `false` | Keep `false` until reviewed |
 
@@ -110,10 +112,13 @@ imported AeroSpace config does not start it or send workspace-change triggers.
 WSL2 detection uses the kernel release. WSL2 is always treated as shell/CLI
 only, even when workstation options are selected.
 
-For WSL2, answer `shell`, `none`, then choose whether to install missing CLI
-packages and whether to auto-attach tmux. Enabling package installation does not
-enable desktop packages: Fuzzel is only selected for native Linux workstations
-using `auto` or `hyprland`. The same selection controls its configuration.
+On WSL2, only choose whether to install missing CLI packages and whether to
+auto-attach tmux. Enabling installation never enables desktop packages. Fuzzel
+is selected only for native Linux Hyprland workstations.
+
+Desktop profiles **configure an existing desktop; they do not install one**.
+The readiness check reports missing desktop programs. Install Hyprland/AeroSpace,
+fonts, drivers and desktop dependencies separately. SketchyBar remains optional.
 
 ## Validate without touching the live home
 
@@ -127,8 +132,10 @@ Requirements for the full validation suite include `bash`, `zsh`, `chezmoi`,
 The suite creates temporary config, cache, state, source-render, and destination
 paths. It initializes and applies host-native workstation/`auto` and shell/`none`
 profiles only in those paths. Darwin runs natively on macOS and Linux runs
-natively on Linux; WSL and cross-host simulation remain residual gaps. It also
-checks:
+natively on Linux. Additional tests simulate WSL and cross-host prompts/package
+selection, and execute adapters with mocked commands in temporary homes. Real
+WSL desktop behavior and real distro package installations are not exercised.
+It also checks:
 
 - Template selection and repeatable second applies
 - Shell, JSON, TOML, and JavaScript syntax
@@ -136,7 +143,9 @@ checks:
 - Removal of obsolete Neovim files
 - Basic secret-pattern exclusions
 - Hyprland login guards
-- Non-ZLE zsh startup, including the fzf integration
+- Fresh-home non-ZLE zsh startup, including the fzf integration
+- Approval/disabled-install safety, APT/Pacman/Brew arguments and adapter failures
+- Minimum-version readiness checks (old commands are not treated as ready)
 - `git diff --check`
 
 It does not apply to the real `$HOME`, install packages, reload programs, stage
@@ -149,6 +158,8 @@ then initialize it without applying:
 
 ```sh
 chezmoi --source /path/to/dot_files init
+cd /path/to/dot_files
+./scripts/setup.sh --plan  # read-only: effective profile, adapter, missing packages, compatibility
 chezmoi --source /path/to/dot_files diff
 chezmoi --source /path/to/dot_files apply --dry-run --verbose
 ```
@@ -170,12 +181,53 @@ After a standard remote initialization into chezmoi's default source directory,
 bare commands can be used:
 
 ```sh
-chezmoi init --ssh jtabke/dot_files
+chezmoi init https://github.com/jtabke/dot_files.git
+"$(chezmoi source-path)/../scripts/setup.sh" --plan
 chezmoi diff
 chezmoi apply --dry-run --verbose
 ```
 
-Do not append `--apply` to `chezmoi init` until the complete diff is approved.
+HTTPS avoids requiring GitHub SSH credentials on a fresh machine. Use
+`chezmoi init --ssh jtabke/dot_files` only after setting up SSH access.
+Do not append `--apply` until the complete diff and package plan are approved.
+
+### Complete setup and verify readiness
+
+When package installation is enabled, apply previews the missing packages and
+asks for approval before calling the package manager. Non-interactive applies
+cannot approve installation implicitly. For unattended setup, explicitly review
+`./scripts/setup.sh --plan`, then run `./scripts/setup.sh --install --yes` before
+applying. Both commands use the profile selected by init; `--yes` cannot bypass
+`installPackages=false`. For Pacman, `--yes` also passes `--noconfirm` after the
+explicit approval. APT uses `-y`; dependencies are resolved by the package manager.
+
+After applying, run `~/.local/bin/dotfiles-setup --check`. It returns nonzero for
+missing/incompatible dependencies; `--plan` is always a read-only report.
+
+- **Activate Zsh yourself.** Try `zsh` first. To make it the login shell, verify
+  `command -v zsh` is listed in `/etc/shells`, then explicitly run
+  `chsh -s "$(command -v zsh)"` if supported. On WSL check the Windows terminal
+  launch profile too. No setup command changes your login shell.
+- **Set Git identity** in `~/.config/git/user.inc` (see below).
+- **Initialize Neovim deliberately.** First launch downloads plugins, builds
+  parsers and installs language servers. It requires network access, Node/npm,
+  a C compiler, make, curl and unzip. On macOS install Command Line Tools with
+  `xcode-select --install` if needed. Afterwards run `:checkhealth`; editor
+  downloads are separate from chezmoi's package-install opt-in.
+- **Pi is optional.** Its executable/runtime is not installed by this adapter.
+  Install it separately, review the configured package sources before launch,
+  then authenticate with `/login`. Neither credentials nor authentication are
+  provisioned here.
+
+The portable Pi baseline no longer declares the private `jtabke/pi-extensions`
+package or a local `~/Documents/Coding/pi-companion` checkout. Companion uses
+its GitHub source on non-WSL machines and remains excluded on WSL. Before
+applying on an existing machine, move wanted private or local integrations to a
+project's `.pi/settings.json` via
+`pi install --local git:git@github.com:jtabke/pi-extensions` or
+`pi install --local /absolute/path/to/pi-companion` from that project. Set up
+SSH access for the private repository first. Public Pi Git sources use HTTPS.
+Do not add those local paths back to the shared baseline.
 
 ## Existing-machine adoption
 
@@ -275,7 +327,7 @@ source state. Validation runs these tests on temporary copies with mocked system
 actions; it does not change networking, install updates, lock, or end the session.
 
 Install desktop dependencies separately; the optional package adapter installs
-only the CLI tools listed below. This desktop uses Waybar, Hyprland, Hypridle,
+the CLI tools listed below plus Fuzzel for the Hyprland profile. This desktop uses Waybar, Hyprland, Hypridle,
 Hyprlock, Hyprpaper, Ghostty, Fuzzel, Nemo, wlsunset, and Python 3. The bar's
 Wi-Fi controls require iwd, `busctl`, `ip`, and Impala; Bluetooth uses
 `bluetoothctl` and Bluetui; Tailscale needs its client and daemon. Audio controls
@@ -294,9 +346,10 @@ its selection is installed by this repository.
 
 ## SSH-agent prerequisite
 
-The Pi package list includes Git repositories accessed over SSH. Before Pi
-installs those packages, configure GitHub SSH access and make the intended agent
-available to the shell. Chezmoi does not create an SSH-agent service or install keys.
+The shared Pi package list uses HTTPS and does not require a GitHub SSH agent.
+If you opt into private SSH packages in project-local settings, configure GitHub
+SSH access and make the intended agent available to the shell first. Chezmoi
+does not create an SSH-agent service or install keys.
 
 This Linux workstation has an unmanaged `~/.config/zsh/.zshenv` containing:
 
@@ -330,8 +383,10 @@ files, or rendered secret-manager output. This repository does not manage
 
 ## Optional package installation
 
-`home/run_onchange_install-packages.sh.tmpl` checks for missing commands and can
-install Git, Neovim, zsh, tmux, ripgrep, and fzf through:
+`home/run_onchange_install-packages.sh.tmpl` and `dotfiles-setup` share one
+package plan and readiness implementation. They can install missing Git,
+Git LFS, Neovim, zsh, tmux, ripgrep, fzf, Node/npm, make, curl, unzip and Linux
+compiler tools through:
 
 - Homebrew from `PATH`, `/opt/homebrew/bin`, or `/usr/local/bin`
 - Pacman, with root and sudo handling
@@ -341,9 +396,14 @@ Fuzzel is additionally installed only for native Linux workstations using the
 `auto` or `hyprland` desktop profile, never for WSL2, shell-only profiles, or
 `desktop=none`.
 
-The script is disabled when `installPackages=false`. Repository validation
-renders package-selection regression cases but does not execute the adapter.
-Review its rendered output before enabling package changes.
+Installation is disabled when `installPackages=false`; reporting still works.
+Existing commands are not automatically upgraded. The readiness check requires
+Neovim >= 0.11.3, tmux >= 3.5 (`extended-keys-format`), fzf >= 0.48 (`--zsh`),
+and Node >= 22. Older distro packages may require a separate trusted installation
+method. No third-party repositories or remote installer scripts are added.
+
+Repository validation renders profile cases and executes only **mocked** package
+adapters, never real installations. Review `--plan` before enabling changes.
 
 ## Git workflow
 
