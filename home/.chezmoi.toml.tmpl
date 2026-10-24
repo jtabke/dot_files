@@ -18,7 +18,7 @@
 {{- end -}}
 {{- end -}}
 {{- warnf "Profile: %s / %s. Desktop profiles configure an existing desktop; they do not install one." $role $desktop -}}
-{{- warnf "Optional packages: Git, Git LFS, Neovim, zsh, tmux, ripgrep, fzf, Node/npm, C compiler, make, curl, unzip. Fuzzel only on native Linux Hyprland. Run scripts/setup.sh --plan after init for the exact missing-package plan. Apply asks for approval before installing; old tool versions are reported, not automatically upgraded." -}}
+{{- warnf "Optional packages: Git, Git LFS, Neovim, zsh, tmux, ripgrep, fzf, Node/npm, C compiler, make, curl, unzip. Fuzzel only on native Linux Hyprland. The guided ./setup flow previews the exact plan and asks separately before applying configs or installing packages. Manual users can preview with scripts/setup.sh --plan. Old tool versions are reported, not automatically upgraded." -}}
 {{- $installPackages := promptBoolOnce . "installPackages" "Install missing packages during apply?" -}}
 {{- $autoTmux := promptBoolOnce . "autoTmux" "Automatically attach interactive shells to tmux?" -}}
 [data]

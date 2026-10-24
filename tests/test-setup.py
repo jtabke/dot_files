@@ -3,6 +3,8 @@
 import json
 import os
 import pty
+import select
+import time
 import shutil
 from pathlib import Path
 import subprocess
@@ -68,6 +70,126 @@ class SetupTests(unittest.TestCase):
         self.assertFalse(self.receipt.exists())
         self.assertNotEqual(self.run_setup("--check").returncode, 0)
         self.assertFalse(self.receipt.exists())
+
+    def run_guided(self, replies, install=True, fail_apply=False, fresh=False):
+        if not fresh:
+            (self.root / "config.toml").write_text(
+                '[data]\nrole="shell"\ndesktop="none"\ninstallPackages=' + str(install).lower()
+                + '\nautoTmux=false\nisWSL=false\nosReleaseID="ubuntu"\n')
+        for name in ("dirname", "mktemp", "rm"):
+            (self.bin / name).symlink_to(shutil.which(name))
+        self.command("chezmoi", 'printf "%s\\n" "$*" >> "$FIXTURE/chezmoi.log"\n'
+                     + ('case " $* " in *" apply "*) exit 9 ;; esac\n' if fail_apply else '')
+                     + f'exec "{CHEZMOI}" --destination "$HOME" --config "$FIXTURE/config.toml" '
+                     '--cache "$FIXTURE/cache" --persistent-state "$FIXTURE/state" --no-tty "$@"\n')
+        master, slave = pty.openpty()
+        process = subprocess.Popen(["/bin/bash", str(REPO / "setup")], env=self.env, cwd=self.root,
+                                   stdin=slave, stdout=slave, stderr=slave)
+        os.close(slave)
+        output = ""
+        pending = list(replies)
+        deadline = time.monotonic() + 30
+        try:
+            while time.monotonic() < deadline:
+                ready, _, _ = select.select([master], [], [], 0.1)
+                if ready:
+                    try:
+                        chunk = os.read(master, 65536)
+                    except OSError:
+                        break  # PTY closes with EIO after the child exits.
+                    if not chunk:
+                        break
+                    output += chunk.decode(errors="replace")
+                    if pending and pending[0][0] in output:
+                        _, answer = pending.pop(0)
+                        os.write(master, (answer + "\n").encode())
+                elif process.poll() is not None:
+                    break
+            self.assertIsNotNone(process.poll() if process.poll() is not None else process.wait(timeout=2), output[-3000:])
+            self.assertFalse(pending, output[-3000:])
+            return process.returncode, output
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+            os.close(master)
+
+    def test_guided_fresh_home_initializes_before_preview(self):
+        replies = []
+        kernel = os.uname().release.lower()
+        if "wsl" not in kernel and "microsoft" not in kernel:
+            replies.append(("Machine role", "shell"))
+        replies += [("Install missing packages during apply?", "false"),
+                    ("Automatically attach interactive shells to tmux?", "false"),
+                    ("Apply the configuration changes shown above?", "n")]
+        status, output = self.run_guided(replies, fresh=True)
+        self.assertEqual(status, 0, output[-3000:])
+        self.assertIn('desktop = "none"', (self.root / "config.toml").read_text())
+        self.assertIn("Review the setup plan", output)
+        self.assertFalse((self.home / ".zshenv").exists())
+        self.assertFalse(self.receipt.exists())
+
+    def test_guided_decline_config_never_applies_or_installs(self):
+        status, output = self.run_guided([("Apply the configuration changes shown above?", "")])
+        self.assertEqual(status, 0, output[-3000:])
+        self.assertIn("Cancelled", output)
+        self.assertFalse((self.home / ".zshenv").exists())
+        self.assertFalse(self.receipt.exists())
+        self.assertNotIn(" apply ", (self.root / "chezmoi.log").read_text())
+
+    def test_guided_config_approval_does_not_approve_packages(self):
+        status, output = self.run_guided([("Apply the configuration changes shown above?", "y"),
+                                          ("Install these missing packages now?", "n")])
+        self.assertEqual(status, 0, output[-3000:])
+        self.assertTrue((self.home / ".zshenv").exists())
+        self.assertTrue((self.home / ".local/bin/dotfiles-setup").exists())
+        self.assertFalse(self.receipt.exists())
+        self.assertIn("apply --exclude scripts", (self.root / "chezmoi.log").read_text())
+        self.assertIn("Final checklist", output)
+        self.assertIn("NEEDS ACTION", output)
+
+    def test_guided_separate_package_approval(self):
+        status, output = self.run_guided([("Apply the configuration changes shown above?", "yes"),
+                                          ("Install these missing packages now?", "y")])
+        self.assertEqual(status, 0, output[-3000:])
+        self.assertTrue((self.home / ".zshenv").exists())
+        self.assertIn("install git-lfs", self.receipt.read_text())
+        self.assertIn("checked dependencies are ready", output)
+
+    def test_guided_disabled_packages_skips_package_prompt(self):
+        status, output = self.run_guided([("Apply the configuration changes shown above?", "y")], install=False)
+        self.assertEqual(status, 0, output[-3000:])
+        self.assertIn("Package installation is disabled", output)
+        self.assertNotIn("Install these missing packages now?", output)
+        self.assertFalse(self.receipt.exists())
+
+    def test_guided_apply_failure_stops_before_packages(self):
+        status, output = self.run_guided([("Apply the configuration changes shown above?", "y")], fail_apply=True)
+        self.assertEqual(status, 9, output[-3000:])
+        self.assertFalse(self.receipt.exists())
+        self.assertNotIn("Install these missing packages now?", output)
+
+    def test_guided_package_failure_reports_partial_setup(self):
+        for name in ("brew", "apt-get", "pacman"):
+            self.command(name, 'echo denied >&2\nexit 7\n')
+        status, output = self.run_guided([("Apply the configuration changes shown above?", "y"),
+                                          ("Install these missing packages now?", "y")])
+        self.assertEqual(status, 7, output[-3000:])
+        self.assertTrue((self.home / ".zshenv").exists())
+        self.assertIn("Configs were already applied", output)
+
+    def test_guided_noninteractive_refuses_before_init(self):
+        self.command("chezmoi", 'echo called > "$FIXTURE/unexpected-init"\n')
+        result = subprocess.run(["/bin/bash", str(REPO / "setup")], env=self.env, input="", text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("interactive terminal", result.stderr)
+        self.assertFalse((self.root / "unexpected-init").exists())
+
+    def test_guided_rejects_automatic_approval_before_init(self):
+        self.command("chezmoi", 'echo called > "$FIXTURE/unexpected-init"\n')
+        result = subprocess.run(["/bin/bash", str(REPO / "setup"), "--yes"], env=self.env, input="", text=True, capture_output=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse((self.root / "unexpected-init").exists())
 
     def test_repo_helper_works_before_applying(self):
         config = self.root / "config" / "chezmoi"

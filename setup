@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Guided front door; chezmoi remains the source of truth for profile and files.
+set -euo pipefail
+
+case "${1-}" in
+  -h|--help)
+    echo 'Usage: ./setup'
+    echo 'Interactively initialize, preview changes, approve configs/packages separately, and check readiness.'
+    echo 'For read-only or unattended operations, see scripts/setup.sh --plan and README.md.'
+    exit 0
+    ;;
+  '') ;;
+  *) echo 'Usage: ./setup (interactive; no automatic approval flags)' >&2; exit 2 ;;
+esac
+[[ $# -eq 0 ]] || { echo 'Usage: ./setup' >&2; exit 2; }
+if [[ ! -t 0 || ! -t 1 ]]; then
+  echo './setup needs an interactive terminal. Use scripts/setup.sh --plan for a read-only report; see README.md for unattended setup.' >&2
+  exit 1
+fi
+if ! command -v chezmoi >/dev/null 2>&1; then
+  echo 'Install chezmoi using a method you trust, then rerun ./setup. See https://www.chezmoi.io/install/' >&2
+  exit 1
+fi
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+confirm_setup() {
+  local answer
+  read -r -p "$1 [y/N] " answer || return 1
+  [[ "$answer" == y || "$answer" == Y || "$answer" == yes || "$answer" == YES ]]
+}
+
+printf '\n=== 1. Choose the machine profile ===\n'
+echo 'Initialization saves setup choices; it does not apply dotfiles.'
+chezmoi --source "$repo" init
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+chezmoi --source "$repo" execute-template --file "$repo/home/.chezmoitemplates/setup.sh.tmpl" >"$tmp"
+# Load the existing package/check functions, without executing an install mode.
+source "$tmp"
+printf '\n=== 2. Review the setup plan ===\n'
+plan
+readiness || true
+
+printf '\n=== 3. Review configuration changes ===\n'
+echo 'Back up existing files before proceeding. Package hooks are excluded from this config-only step.'
+chezmoi --source "$repo" --no-pager diff --exclude scripts
+if ! confirm_setup 'Apply the configuration changes shown above?'; then
+  echo 'Cancelled: no dotfiles applied or packages installed. Initialization choices remain saved.'
+  exit 0
+fi
+# Exclude hooks so configuration approval can never authorize package installs.
+chezmoi --source "$repo" apply --exclude scripts
+
+printf '\n=== 4. Optional packages ===\n'
+if [[ "$install_enabled" != true ]]; then
+  echo 'Package installation is disabled in your saved profile; skipped.'
+elif ((${#missing[@]} == 0)); then
+  echo 'No configured packages are missing.'
+else
+  plan
+  echo 'The package manager may also install dependencies. Existing tools will not be automatically upgraded.'
+  if confirm_setup 'Install these missing packages now?'; then
+    # Explicit approval above replaces the helper's second approval prompt.
+    if install_missing --yes; then
+      :
+    else
+      status=$?
+      echo 'Package installation failed. Configs were already applied; no rollback was attempted.' >&2
+      readiness || true
+      exit "$status"
+    fi
+  else
+    echo 'Skipped packages for this run. Configs are applied; your saved package preference is unchanged.'
+  fi
+fi
+
+printf '\n=== 5. Final checklist ===\n'
+if readiness; then
+  echo 'Configs applied and checked dependencies are ready. Review any NEXT steps above.'
+else
+  echo 'Configs applied. Resolve the NEEDS ACTION items above, then rerun ~/.local/bin/dotfiles-setup --check.'
+fi

@@ -21,6 +21,8 @@ Repository work and live-home work are separate operations.
 | --- | ---: | --- |
 | Edit files in this repository | No | Changes source only |
 | `./tests/validate-repository.sh` | No | Uses temporary directories |
+| `./setup` | **Yes** | Saves init choices first; separate approvals for configs and packages |
+| `./scripts/setup.sh --plan` | No managed-file writes | Read-only profile/package/readiness report after init |
 | `chezmoi init` | Yes | Creates chezmoi config/state; does not apply unless requested |
 | `chezmoi diff` | No managed-file writes | Reads live files and renders templates |
 | `chezmoi apply --dry-run --verbose` | No managed-file writes | Shows planned operations |
@@ -50,6 +52,8 @@ Project documentation, tests, hooks, and Git metadata cannot be installed into
 ```text
 .
 ├── .chezmoiroot                 # tells chezmoi to use home/
+├── setup                        # guided, interactive machine setup
+├── scripts/setup.sh             # advanced plan/check/install helper
 ├── home/
 │   ├── .chezmoi.toml.tmpl       # once-only profile questions
 │   ├── .chezmoiignore           # platform/profile path selection
@@ -144,6 +148,7 @@ It also checks:
 - Basic secret-pattern exclusions
 - Hyprland login guards
 - Fresh-home non-ZLE zsh startup, including the fzf integration
+- Guided setup in disposable homes: config/package approvals, cancellation and failures
 - Approval/disabled-install safety, APT/Pacman/Brew arguments and adapter failures
 - Minimum-version readiness checks (old commands are not treated as ready)
 - `git diff --check`
@@ -153,53 +158,70 @@ files, commit, or push.
 
 ## New-machine bootstrap
 
-Install chezmoi through a method you trust. Clone or reference this repository,
-then initialize it without applying:
+### Recommended: guided setup
+
+Install **Git, Bash, and chezmoi** using methods you trust. Then clone over HTTPS
+(no GitHub SSH credentials required) and run the guided entry point:
+
+```sh
+git clone https://github.com/jtabke/dot_files.git
+cd dot_files
+./setup
+```
+
+Already have the checkout? Just run `./setup` from its root. It works regardless
+of where the checkout lives and reuses any saved chezmoi profile choices.
+
+The guide walks through five steps:
+
+1. **Initialize:** detect the platform and ask only relevant profile questions.
+   This saves chezmoi config/state but does not apply dotfiles.
+2. **Plan:** show the effective profile, package adapter, missing packages and
+   compatibility warnings. No separate `--plan` command is needed.
+3. **Review and apply configs:** show the config diff, then ask for approval
+   (default **No**). Config apply excludes script hooks, so this approval cannot
+   install packages. Back up existing files before approving replacements.
+4. **Optional packages:** if enabled in your profile, show missing packages and
+   ask separately (default **No**). Declining leaves the configs applied and
+   skips packages for this run; saved preferences are unchanged. The package
+   manager may install dependencies; approved installs use APT `-y` or Pacman
+   `--noconfirm`. Existing commands are not automatically upgraded.
+5. **Final checklist:** report remaining dependencies and manual next steps.
+   Missing dependencies are reported, not silently treated as a ready machine.
+
+Cancelling config approval leaves only the saved initialization choices. Failed
+config apply stops before package installation. If packages fail, configs remain
+applied and the guide reports the partial setup; there is no automatic rollback.
+The guide requires a terminal and has no automatic-approval mode. It does not
+change your login shell, authenticate applications, or install a full desktop.
+
+### Manual chezmoi and unattended alternatives
+
+Advanced users can still initialize, inspect and apply directly:
 
 ```sh
 chezmoi --source /path/to/dot_files init
-cd /path/to/dot_files
-./scripts/setup.sh --plan  # read-only: effective profile, adapter, missing packages, compatibility
+/path/to/dot_files/scripts/setup.sh --plan
 chezmoi --source /path/to/dot_files diff
 chezmoi --source /path/to/dot_files apply --dry-run --verbose
-```
-
-Review the rendered diff. When it is correct, apply individual targets first:
-
-```sh
-chezmoi --source /path/to/dot_files apply ~/.zshenv
-chezmoi --source /path/to/dot_files apply ~/.config/zsh
-```
-
-A full apply is a separate, explicit decision:
-
-```sh
+# Only after reviewing and approving the diff and package plan:
 chezmoi --source /path/to/dot_files apply
 ```
 
-After a standard remote initialization into chezmoi's default source directory,
-bare commands can be used:
+For an existing-machine migration, keep using the target-by-target adoption
+workflow below rather than approving a full apply blindly. For a standard
+remote initialization, use `chezmoi init https://github.com/jtabke/dot_files.git`,
+then run `"$(chezmoi source-path)/../setup"`. Use `--ssh` only after setting up
+GitHub SSH access. Do not append `--apply` before reviewing changes.
 
-```sh
-chezmoi init https://github.com/jtabke/dot_files.git
-"$(chezmoi source-path)/../scripts/setup.sh" --plan
-chezmoi diff
-chezmoi apply --dry-run --verbose
-```
-
-HTTPS avoids requiring GitHub SSH credentials on a fresh machine. Use
-`chezmoi init --ssh jtabke/dot_files` only after setting up SSH access.
-Do not append `--apply` until the complete diff and package plan are approved.
-
-### Complete setup and verify readiness
-
-When package installation is enabled, apply previews the missing packages and
-asks for approval before calling the package manager. Non-interactive applies
+Direct `chezmoi apply` retains its package approval hook. Non-interactive applies
 cannot approve installation implicitly. For unattended setup, explicitly review
 `./scripts/setup.sh --plan`, then run `./scripts/setup.sh --install --yes` before
-applying. Both commands use the profile selected by init; `--yes` cannot bypass
-`installPackages=false`. For Pacman, `--yes` also passes `--noconfirm` after the
-explicit approval. APT uses `-y`; dependencies are resolved by the package manager.
+applying. These helpers use the profile selected by init; `--yes` cannot bypass
+`installPackages=false`. For Pacman, `--yes` also passes `--noconfirm`; APT uses
+`-y`. They are advanced alternatives, not additional steps for the guided flow.
+
+### Complete setup and verify readiness
 
 After applying, run `~/.local/bin/dotfiles-setup --check`. It returns nonzero for
 missing/incompatible dependencies; `--plan` is always a read-only report.
