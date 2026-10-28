@@ -30,7 +30,15 @@ confirm_setup() {
 
 printf '\n=== 1. Choose the machine profile ===\n'
 echo 'Initialization saves setup choices; it does not apply dotfiles.'
-chezmoi --source "$repo" init
+saved_profile=$(chezmoi --source "$repo" execute-template '{{ hasKey . "role" }}')
+init_args=()
+if [[ "$saved_profile" == true ]]; then
+  echo 'Saved setup choices found. Keep them, or answer the profile questions again.'
+  if confirm_setup 'Change saved setup choices?'; then
+    init_args=(--prompt)
+  fi
+fi
+chezmoi --source "$repo" init "${init_args[@]+"${init_args[@]}"}"
 
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT

@@ -4,6 +4,7 @@ import json
 import os
 import pty
 import select
+import shlex
 import time
 import shutil
 from pathlib import Path
@@ -27,14 +28,16 @@ class SetupTests(unittest.TestCase):
         self.receipt = self.root / "manager.log"
         self.env = dict(os.environ, HOME=str(self.home), PATH=str(self.bin),
                         RECEIPT=str(self.receipt), FIXTURE=str(self.root), SHELL="/bin/bash")
-        for name in ("git", "zsh", "rg", "cc", "make", "curl", "unzip", "npm"):
+        for name in ("git", "vim", "stylua", "prettier", "zsh", "rg", "cc", "make", "curl", "unzip", "npm"):
             self.command(name)
         for name, version in {"nvim": "0.11.3", "tmux": "3.5a", "fzf": "0.48.0", "node": "v22.0.0"}.items():
             self.command(name, f"printf '%s\\n' '{version}'\n")
         self.command("sudo", 'exec "$@"\n')
         # Managers are all mocks, including brew to prevent absolute-path fallback.
         for name in ("brew", "apt-get", "pacman"):
-            self.command(name, f'printf "%s\\n" "{name} $*" >> "$RECEIPT"\n/bin/cp "$FIXTURE/git-lfs" "$PATH/git-lfs"\n')
+            self.command(name, 'if [ "$1" = shellenv ]; then\n'
+                         '  printf \'export PATH="%s:$PATH"\\n\' "${0%/*}"\n  exit 0\nfi\n'
+                         + f'printf "%s\\n" "{name} $*" >> "$RECEIPT"\n/bin/cp "$FIXTURE/git-lfs" "$FIXTURE/bin/git-lfs"\n')
         (self.root / "git-lfs").write_text("#!/bin/sh\nexit 0\n")
         (self.root / "git-lfs").chmod(0o755)
 
@@ -71,7 +74,7 @@ class SetupTests(unittest.TestCase):
         self.assertNotEqual(self.run_setup("--check").returncode, 0)
         self.assertFalse(self.receipt.exists())
 
-    def run_guided(self, replies, install=True, fail_apply=False, fresh=False):
+    def run_guided(self, replies, install=True, fail_apply=False, fresh=False, revise=False):
         if not fresh:
             (self.root / "config.toml").write_text(
                 '[data]\nrole="shell"\ndesktop="none"\ninstallPackages=' + str(install).lower()
@@ -87,7 +90,7 @@ class SetupTests(unittest.TestCase):
                                    stdin=slave, stdout=slave, stderr=slave)
         os.close(slave)
         output = ""
-        pending = list(replies)
+        pending = ([] if fresh else [("Change saved setup choices?", "y" if revise else "n")]) + list(replies)
         deadline = time.monotonic() + 30
         try:
             while time.monotonic() < deadline:
@@ -120,12 +123,29 @@ class SetupTests(unittest.TestCase):
         if "wsl" not in kernel and "microsoft" not in kernel:
             replies.append(("Machine role", "shell"))
         replies += [("Install missing packages during apply?", "false"),
-                    ("Automatically attach interactive shells to tmux?", "false"),
+                    ("Automatically open or reconnect to tmux (including SSH)?", "false"),
                     ("Apply the configuration changes shown above?", "n")]
         status, output = self.run_guided(replies, fresh=True)
         self.assertEqual(status, 0, output[-3000:])
         self.assertIn('desktop = "none"', (self.root / "config.toml").read_text())
         self.assertIn("Review the setup plan", output)
+        self.assertFalse((self.home / ".zshenv").exists())
+        self.assertFalse(self.receipt.exists())
+
+    def test_guided_can_revise_saved_choices(self):
+        replies = []
+        kernel = os.uname().release.lower()
+        if "wsl" not in kernel and "microsoft" not in kernel:
+            replies += [("Machine role", "workstation"), ("Desktop environment", "none")]
+        replies += [("Install missing packages during apply?", "false"),
+                    ("Automatically open or reconnect to tmux (including SSH)?", "true"),
+                    ("Apply the configuration changes shown above?", "n")]
+        status, output = self.run_guided(replies, revise=True)
+        self.assertEqual(status, 0, output[-3000:])
+        config = (self.root / "config.toml").read_text()
+        self.assertIn("autoTmux = true", config)
+        self.assertIn("installPackages = false", config)
+        self.assertIn("init --prompt", (self.root / "chezmoi.log").read_text())
         self.assertFalse((self.home / ".zshenv").exists())
         self.assertFalse(self.receipt.exists())
 
@@ -171,7 +191,7 @@ class SetupTests(unittest.TestCase):
 
     def test_guided_package_failure_reports_partial_setup(self):
         for name in ("brew", "apt-get", "pacman"):
-            self.command(name, 'echo denied >&2\nexit 7\n')
+            self.command(name, 'if [ "$1" = shellenv ]; then exit 0; fi\necho denied >&2\nexit 7\n')
         status, output = self.run_guided([("Apply the configuration changes shown above?", "y"),
                                           ("Install these missing packages now?", "y")])
         self.assertEqual(status, 7, output[-3000:])
@@ -255,6 +275,107 @@ class SetupTests(unittest.TestCase):
         self.assertIn("adapter: brew", result.stdout)
         self.assertIn("NEEDS ACTION: cc", result.stdout)
         self.assertFalse(self.receipt.exists())
+
+    def test_homebrew_shellenv_discovers_off_path_tools(self):
+        self.command("git-lfs")
+        prefix = self.root / "brew prefix" / "bin"
+        prefix.mkdir(parents=True)
+        for command in ("brew", "nvim", "node", "npm", "vim", "stylua", "prettier"):
+            (self.bin / command).rename(prefix / command)
+        # An older command on the original PATH must not shadow the selected prefix.
+        self.command("nvim", "echo 0.9.5\n")
+        rendered = self.render(self.data(chezmoi={"os": "darwin", "kernel": {"osrelease": "24"}}))
+        rendered = rendered.replace("/opt/homebrew/bin/brew", shlex.quote(str(prefix / "brew")))
+        rendered = rendered.replace("/usr/local/bin/brew", shlex.quote(str(self.root / "no-intel-brew")))
+        script = self.root / "off-path-brew.sh"
+        script.write_text(rendered)
+        result = subprocess.run(["/bin/bash", str(script), "--check"], env=self.env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Missing packages: none", result.stdout)
+        self.assertIn("OK: nvim 0.11.3", result.stdout)
+        self.assertFalse(self.receipt.exists())
+
+    def test_homebrew_shellenv_failure_stops_before_install(self):
+        self.command("brew", "exit 13\n")
+        result = self.run_setup("--install", "--yes", data=self.data(chezmoi={"os": "darwin", "kernel": {"osrelease": "24"}}))
+        self.assertEqual(result.returncode, 13)
+        self.assertFalse(self.receipt.exists())
+
+    def test_arch_installs_vim_and_configured_formatters(self):
+        self.command("git-lfs")
+        for command in ("vim", "stylua", "prettier"):
+            (self.bin / command).unlink()
+        (self.root / "tool").write_text("#!/bin/sh\nexit 0\n")
+        (self.root / "tool").chmod(0o755)
+        self.command("pacman", 'printf "%s\\n" "$*" > "$RECEIPT"\n'
+                     'for tool in vim stylua prettier; do /bin/cp "$FIXTURE/tool" "$FIXTURE/bin/$tool"; done\n')
+        self.command("brew", "exit 99\n")  # Arch must not initialize an unrelated Homebrew.
+        result = self.run_setup("--install", "--yes", data=self.data(osReleaseID="arch"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.receipt.read_text().strip(), "-S --needed --noconfirm -- vim stylua prettier")
+
+    def test_pi_https_extension_filter_preserves_wsl_behavior(self):
+        source = self.root / "pi-source"
+        templates = source / ".chezmoitemplates"
+        templates.mkdir(parents=True)
+        extensions = "git:github.com/jtabke/pi-extensions"
+        companion = "git:github.com/jtabke/pi-companion"
+        (templates / "pi-settings.json").write_text(json.dumps({"packages": [extensions, companion]}))
+        for wsl in (False, True):
+            override = {"isWSL": wsl, "chezmoi": {"stdin": json.dumps({"deviceId": "device-sentinel"})}}
+            rendered = subprocess.check_output(
+                [CHEZMOI, "--source", str(source), "--config", str(self.root / "pi-config.toml"),
+                 "--cache", str(self.root / "pi-cache"), "--persistent-state", str(self.root / "pi-state"),
+                 "--no-tty", "--override-data", json.dumps(override), "execute-template", "--file",
+                 str(REPO / "home/dot_pi/private_agent/modify_settings.json")], text=True)
+            settings = json.loads(rendered)
+            expected = [{"source": extensions, "extensions": ["!extensions/ollama*/**"]}] if wsl else [extensions, companion]
+            self.assertEqual(settings["packages"], expected)
+            self.assertEqual(settings["deviceId"], "device-sentinel")
+
+    def test_auto_tmux_preference_is_independent_of_machine_role(self):
+        for role in ("shell", "workstation"):
+            for enabled in (True, False):
+                with self.subTest(role=role, enabled=enabled):
+                    rendered = self.render(self.data(role=role, autoTmux=enabled), "home/dot_config/zsh/90-tmux.zsh.tmpl")
+                    self.assertEqual("tmux new-session" in rendered, enabled)
+                    if enabled:
+                        for guard in ('-t 1', '-z "${TMUX-}"', '-z "${CI-}"'):
+                            self.assertIn(guard, rendered)
+
+    @unittest.skipUnless(shutil.which("zsh"), "zsh not installed")
+    def test_editor_fallback_uses_real_programs_without_aliases(self):
+        command = [shutil.which("zsh"), "-fc", 'source "$1"; print -r -- "$EDITOR"',
+                   "--", str(REPO / "home/dot_zshenv")]
+        env = dict(self.env)
+        env.pop("EDITOR", None)
+        self.assertEqual(subprocess.check_output(command, env=env, text=True).strip(), "nvim")
+        (self.bin / "nvim").unlink()
+        self.assertEqual(subprocess.check_output(command, env=env, text=True).strip(), "vim")
+        (self.bin / "vim").unlink()
+        self.assertEqual(subprocess.check_output(command, env=env, text=True).strip(), "vi")
+        source = (REPO / "home/dot_config/zsh/30-platform.zsh").read_text()
+        self.assertNotIn("alias vi=", source)
+        self.assertNotIn("alias vim=", source)
+
+    @unittest.skipUnless(shutil.which("nvim"), "Neovim not installed")
+    def test_native_nvim_lsp_configuration_without_plugin_downloads(self):
+        env = dict(os.environ, HOME=str(self.home), DOTFILES_REPO=str(REPO),
+                   XDG_CONFIG_HOME=str(self.root / "config"), XDG_CACHE_HOME=str(self.root / "cache"),
+                   XDG_DATA_HOME=str(self.root / "data"), XDG_STATE_HOME=str(self.root / "state"))
+        result = subprocess.run([shutil.which("nvim"), "--headless", "-u", "NONE", "-i", "NONE", "-l",
+                                 str(REPO / "tests/test-nvim-lsp.lua")], env=env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Native LSP configuration checks passed", result.stdout + result.stderr)
+
+    def test_git_respects_editor_environment(self):
+        env = dict(os.environ, HOME=str(self.home), GIT_CONFIG_NOSYSTEM="1", EDITOR="vim",
+                   GIT_CONFIG_GLOBAL=str(REPO / "home/dot_gitconfig.tmpl"))
+        env.pop("GIT_EDITOR", None)
+        env.pop("VISUAL", None)
+        result = subprocess.check_output([shutil.which("git"), "var", "GIT_EDITOR"],
+                                         cwd=self.root, env=env, text=True)
+        self.assertEqual(result.strip(), "vim")
 
     def test_no_missing_packages_does_not_ask_or_install(self):
         self.command("git-lfs")
@@ -352,7 +473,7 @@ class SetupTests(unittest.TestCase):
                 args = [CHEZMOI, "--source", str(REPO), "--config", str(self.root / "new.toml"),
                         "--cache", str(self.root / "cache"), "--persistent-state", str(self.root / "state"),
                         "--no-tty", "--override-data", json.dumps({"chezmoi": {"os": os_name, "kernel": {"osrelease": kernel}}}),
-                        "execute-template", "--init", "--promptBool", "Install missing packages during apply?=false,Automatically attach interactive shells to tmux?=false"]
+                        "execute-template", "--init", "--promptBool", "Install missing packages during apply?=false,Automatically open or reconnect to tmux (including SSH)?=false"]
                 choices = []
                 if role:
                     choices.append("Machine role=" + role)

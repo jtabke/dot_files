@@ -45,6 +45,14 @@ return {
 		end,
 		config = function()
 			local capabilities = require("blink.cmp").get_lsp_capabilities()
+			-- Mason-LSPConfig v2 enables servers through Neovim's native LSP API.
+			-- Configure them before setup; the old handlers option is no longer used.
+			vim.lsp.config("*", { capabilities = capabilities })
+			vim.lsp.config("lua_ls", {
+				settings = {
+					Lua = { diagnostics = { globals = { "vim" } } },
+				},
+			})
 
 			vim.api.nvim_create_autocmd("LspAttach", {
 				desc = "LSP actions",
@@ -84,23 +92,6 @@ return {
 					"cssls",
 					"jsonls",
 					"eslint",
-				},
-				handlers = {
-					function(server_name)
-						require("lspconfig")[server_name].setup({ capabilities = capabilities })
-					end,
-					["lua_ls"] = function()
-						require("lspconfig").lua_ls.setup({
-							capabilities = capabilities,
-							settings = {
-								Lua = {
-									diagnostics = {
-										globals = { "vim" },
-									},
-								},
-							},
-						})
-					end,
 				},
 			})
 		end,

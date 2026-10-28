@@ -17,8 +17,6 @@ else
 fi
 _comp_options+=(globdots)
 
-alias vim='nvim'
-alias vi='nvim'
 if [[ "$OSTYPE" == darwin* ]]; then
   alias ls='ls -a -G'
   alias ll='ls -lah -G'

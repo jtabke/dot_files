@@ -14,7 +14,7 @@ hyprland={{ $hyprland }}
 aerospace={{ $aerospace }}
 
 # Each entry is package:command. Names differ by adapter, not by CLI intent.
-packages=(git:git git-lfs:git-lfs neovim:nvim zsh:zsh tmux:tmux ripgrep:rg fzf:fzf
+packages=(git:git git-lfs:git-lfs neovim:nvim vim:vim zsh:zsh tmux:tmux ripgrep:rg fzf:fzf
   make:make curl:curl unzip:unzip)
 manager=""
 brew_bin=""
@@ -22,7 +22,10 @@ if command -v brew >/dev/null 2>&1; then
   brew_bin=$(command -v brew)
 else
   for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-    [[ ! -x "$candidate" ]] || brew_bin=$candidate
+    if [[ -x "$candidate" ]]; then
+      brew_bin=$candidate
+      break
+    fi
   done
 fi
 case "$os" in
@@ -40,6 +43,12 @@ case "$os" in
     fi
     ;;
 esac
+if [[ "$manager" == brew ]]; then
+  # Discover tools in the selected prefix even in a fresh shell without brew on PATH.
+  brew_environment=$("$brew_bin" shellenv)
+  eval "$brew_environment"
+  unset brew_environment
+fi
 case "$manager" in
   brew) packages+=(node:node node:npm) ;;
   pacman) packages+=(nodejs:node npm:npm base-devel:cc) ;;
@@ -47,9 +56,12 @@ case "$manager" in
 esac
 # macOS compiler tools are installed manually, never by silently launching xcode-select.
 if [[ "$os" == darwin ]]; then
-  packages=(git:git git-lfs:git-lfs neovim:nvim zsh:zsh tmux:tmux ripgrep:rg fzf:fzf
+  packages=(git:git git-lfs:git-lfs neovim:nvim vim:vim zsh:zsh tmux:tmux ripgrep:rg fzf:fzf
     node:node node:npm make:make curl:curl unzip:unzip)
 fi
+case "$manager" in
+  brew|pacman) packages+=(stylua:stylua prettier:prettier) ;;
+esac
 {{ if $hyprland -}}
 packages+=(fuzzel:fuzzel)
 {{ end -}}
@@ -120,6 +132,13 @@ readiness() {
   check_version tmux 3.5
   check_version fzf 0.48
   check_version node 22.0
+  case "$manager" in
+    brew|pacman) ;;  # Already included in the package dependency checks above.
+    *)
+      need stylua 'Neovim Lua formatter; install separately on this package adapter'
+      need prettier 'Neovim web/Markdown formatter; install separately on this package adapter'
+      ;;
+  esac
   if [[ "$os" == linux && "$manager" == brew ]]; then
     need cc 'install distro compiler tools separately for Neovim parser builds'
   fi

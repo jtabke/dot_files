@@ -14,7 +14,6 @@
     "npm:pi-web-access",
     "npm:pi-mcp-adapter",
     "git:github.com/jtabke/pi-vim",
-    "git:github.com/lolipopshock/pi-clm",
     "git:github.com/jtabke/pi-companion",
     {
       "source": "git:github.com/nicobailon/pi-subagents@main",

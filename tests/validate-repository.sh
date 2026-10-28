@@ -56,7 +56,7 @@ check test -f .pi/agent/AGENTS.md
 check grep -qF 'promptChoiceOnce . "role" "Machine role"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptChoiceOnce . "desktop" "Desktop environment"' home/.chezmoi.toml.tmpl
 check grep -qF 'promptBoolOnce . "installPackages" "Install missing packages during apply?"' home/.chezmoi.toml.tmpl
-check grep -qF 'promptBoolOnce . "autoTmux" "Automatically attach interactive shells to tmux?"' home/.chezmoi.toml.tmpl
+check grep -qF 'promptBoolOnce . "autoTmux" "Automatically open or reconnect to tmux (including SSH)?"' home/.chezmoi.toml.tmpl
 check_not grep -RIn -F '.chezmoi.kernel.osrelease' home
 check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/.chezmoi.toml.tmpl
 check grep -qF 'default "" (index .chezmoi.kernel "osrelease")' home/.chezmoiignore
@@ -205,7 +205,7 @@ check_pi_platform_settings() {
     if $wsl then
       .packages == ($baseline[0].packages | map(
         select(. != "git:github.com/jtabke/pi-companion") |
-        if . == "git:git@github.com:jtabke/pi-extensions" then
+        if . == "git:github.com/jtabke/pi-extensions" then
           {source: ., extensions: ["!extensions/ollama*/**"]}
         else . end))
     else .packages == $baseline[0].packages end
@@ -213,6 +213,9 @@ check_pi_platform_settings() {
 }
 check check_pi_platform_settings true
 check check_pi_platform_settings false
+check_not jq -e 'any(.packages[]; (if type == "string" then . else .source end) | contains("lolipopshock/pi-clm"))' home/.chezmoitemplates/pi-settings.json
+# Pi GitHub shorthand resolves to HTTPS; never require SSH keys for package clones.
+check_not grep -nE 'git:git@|git:ssh://' home/.chezmoitemplates/pi-settings.json home/dot_pi/private_agent/modify_settings.json
 
 # Render Linux/WSL profiles even on macOS. Execution tests use mocked adapters.
 check_package_profile() {
