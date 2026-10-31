@@ -1,8 +1,5 @@
 # .zshenv is sourced by every zsh invocation. Keep it side-effect-light.
 export ZDOTDIR="$HOME/.config/zsh"
-export EDITOR="nvim"
-export BROWSER="firefox"
-export TERMINAL="ghostty"
 typeset -U path PATH
 for directory in \
   "$HOME/.npm-global/bin" \
@@ -14,5 +11,20 @@ for directory in \
 done
 [[ -d /opt/rocm/bin ]] && path+=(/opt/rocm/bin)
 unset directory
-export NEXT_TELEMETRY_DISABLED=1
 [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+if [[ -z "${EDITOR-}" ]]; then
+  if command -v nvim >/dev/null 2>&1; then export EDITOR=nvim
+  elif command -v vim >/dev/null 2>&1; then export EDITOR=vim
+  else export EDITOR=vi
+  fi
+fi
+if [[ -z "${BROWSER-}" ]]; then
+  if [[ "$OSTYPE" == darwin* ]]; then export BROWSER=open
+  elif [[ -n "${WSL_DISTRO_NAME-}" ]] && command -v wslview >/dev/null 2>&1; then export BROWSER=wslview
+  elif [[ -n "${DISPLAY-}${WAYLAND_DISPLAY-}" ]] && command -v xdg-open >/dev/null 2>&1; then export BROWSER=xdg-open
+  fi
+fi
+if [[ -z "${TERMINAL-}" ]] && command -v ghostty >/dev/null 2>&1; then
+  export TERMINAL=ghostty
+fi
+export NEXT_TELEMETRY_DISABLED=1

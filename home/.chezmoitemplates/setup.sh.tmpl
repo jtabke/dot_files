@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+# Shared by the installed helper and the self-contained chezmoi package hook.
+set -euo pipefail
+{{- $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) -}}
+{{- $isWSL := or (contains "microsoft" $kernel) (contains "wsl" $kernel) -}}
+{{- $hyprland := and (eq .chezmoi.os "linux") (not $isWSL) (eq .role "workstation") (or (eq .desktop "auto") (eq .desktop "hyprland")) -}}
+{{- $aerospace := and (eq .chezmoi.os "darwin") (eq .role "workstation") (or (eq .desktop "auto") (eq .desktop "aerospace")) }}
+os={{ .chezmoi.os | quote }}
+role={{ .role | quote }}
+desktop={{ .desktop | quote }}
+install_enabled={{ .installPackages }}
+is_wsl={{ $isWSL }}
+hyprland={{ $hyprland }}
+aerospace={{ $aerospace }}
+
+# Each entry is package:command. Names differ by adapter, not by CLI intent.
+packages=(git:git git-lfs:git-lfs neovim:nvim vim:vim zsh:zsh tmux:tmux ripgrep:rg fzf:fzf
+  make:make curl:curl unzip:unzip)
+manager=""
+brew_bin=""
+if command -v brew >/dev/null 2>&1; then
+  brew_bin=$(command -v brew)
+else
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [[ -x "$candidate" ]]; then
+      brew_bin=$candidate
+      break
+    fi
+  done
+fi
+case "$os" in
+  darwin) [[ -z "$brew_bin" ]] || manager=brew ;;
+  linux)
+    case {{ .osReleaseID | quote }} in
+      arch|manjaro|endeavouros) command -v pacman >/dev/null 2>&1 && manager=pacman ;;
+      debian|ubuntu|linuxmint|pop) command -v apt-get >/dev/null 2>&1 && manager=apt ;;
+    esac
+    if [[ -z "$manager" ]]; then
+      if command -v pacman >/dev/null 2>&1; then manager=pacman
+      elif command -v apt-get >/dev/null 2>&1; then manager=apt
+      elif [[ -n "$brew_bin" ]]; then manager=brew
+      fi
+    fi
+    ;;
+esac
+if [[ "$manager" == brew ]]; then
+  # Discover tools in the selected prefix even in a fresh shell without brew on PATH.
+  brew_environment=$("$brew_bin" shellenv)
+  eval "$brew_environment"
+  unset brew_environment
+fi
+case "$manager" in
+  brew) packages+=(node:node node:npm) ;;
+  pacman) packages+=(nodejs:node npm:npm base-devel:cc) ;;
+  *) packages+=(nodejs:node npm:npm build-essential:cc) ;;
+esac
+# macOS compiler tools are installed manually, never by silently launching xcode-select.
+if [[ "$os" == darwin ]]; then
+  packages=(git:git git-lfs:git-lfs neovim:nvim vim:vim zsh:zsh tmux:tmux ripgrep:rg fzf:fzf
+    node:node node:npm make:make curl:curl unzip:unzip)
+fi
+case "$manager" in
+  brew|pacman) packages+=(stylua:stylua prettier:prettier) ;;
+esac
+{{ if $hyprland -}}
+packages+=(fuzzel:fuzzel)
+{{ end -}}
+missing=()
+for entry in "${packages[@]}"; do
+  package=${entry%%:*}
+  command_name=${entry##*:}
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    duplicate=false
+    for item in "${missing[@]+"${missing[@]}"}"; do
+      [[ "$item" != "$package" ]] || duplicate=true
+    done
+    [[ "$duplicate" == true ]] || missing+=("$package")
+  fi
+done
+
+plan() {
+  printf 'Profile: %s / %s / %s (WSL: %s)\n' "$os" "$role" "$desktop" "$is_wsl"
+  printf 'Package installation enabled: %s; adapter: %s\n' "$install_enabled" "${manager:-unsupported}"
+  if ((${#missing[@]})); then
+    printf 'Missing packages:'; printf ' %s' "${missing[@]}"; printf '\n'
+  else
+    printf 'Missing packages: none\n'
+  fi
+  echo 'Desktop profiles configure an existing desktop; no full desktop is provisioned.'
+}
+
+issues=0
+need() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    printf 'NEEDS ACTION: %s (%s)\n' "$1" "$2"
+    issues=$((issues + 1))
+  fi
+}
+version_at_least() {
+  local actual=$1 required=$2 a b i
+  for i in 1 2 3; do
+    a=${actual%%.*}; b=${required%%.*}
+    [[ "$a" =~ ^[0-9]+$ && "$b" =~ ^[0-9]+$ ]] || return 1
+    ((10#$a < 10#$b)) && return 1
+    ((10#$a <= 10#$b)) || return 0
+    if [[ "$actual" == *.* ]]; then actual=${actual#*.}; else actual=0; fi
+    if [[ "$required" == *.* ]]; then required=${required#*.}; else required=0; fi
+  done
+}
+check_version() {
+  local command_name=$1 minimum=$2 output actual
+  command -v "$command_name" >/dev/null 2>&1 || return 0
+  if [[ "$command_name" == tmux ]]; then
+    output=$(tmux -V 2>/dev/null) || output=""
+  else
+    output=$("$command_name" --version 2>/dev/null) || output=""
+  fi
+  if [[ "$output" =~ ([0-9]+\.[0-9]+(\.[0-9]+)?) ]]; then
+    actual=${BASH_REMATCH[1]}
+    if version_at_least "$actual" "$minimum"; then
+      printf 'OK: %s %s (minimum %s)\n' "$command_name" "$actual" "$minimum"
+      return 0
+    fi
+  fi
+  printf 'NEEDS ACTION: %s >= %s required; install a supported version from a trusted source. Existing commands are not auto-upgraded.\n' "$command_name" "$minimum"
+  issues=$((issues + 1))
+}
+readiness() {
+  issues=0
+  for entry in "${packages[@]}"; do need "${entry##*:}" 'configured CLI/editor dependency'; done
+  check_version nvim 0.11.3
+  check_version tmux 3.5
+  check_version fzf 0.48
+  check_version node 22.0
+  case "$manager" in
+    brew|pacman) ;;  # Already included in the package dependency checks above.
+    *)
+      need stylua 'Neovim Lua formatter; install separately on this package adapter'
+      need prettier 'Neovim web/Markdown formatter; install separately on this package adapter'
+      ;;
+  esac
+  if [[ "$os" == linux && "$manager" == brew ]]; then
+    need cc 'install distro compiler tools separately for Neovim parser builds'
+  fi
+  if [[ "$os" == darwin ]]; then
+    need cc 'run xcode-select --install, then rerun this check'
+    if command -v xcode-select >/dev/null 2>&1 && ! xcode-select -p >/dev/null 2>&1; then
+      echo 'NEEDS ACTION: macOS Command Line Tools; run xcode-select --install.'
+      issues=$((issues + 1))
+    fi
+  fi
+  if [[ "$hyprland" == true ]]; then
+    for command_name in Hyprland waybar hyprpaper wlsunset hypridle hyprlock grim slurp wl-copy wpctl ghostty nemo; do
+      need "$command_name" 'existing Hyprland desktop dependency; install separately'
+    done
+    check_version Hyprland 0.56
+    for command_name in python3 busctl ip impala bluetoothctl bluetui tailscale pavucontrol notify-send xdg-open; do
+      need "$command_name" 'configured Waybar helper/control dependency; install separately'
+    done
+{{ if or (eq .osReleaseID "arch") (eq .osReleaseID "manjaro") (eq .osReleaseID "endeavouros") -}}
+    need checkupdates 'Waybar updates require pacman-contrib'
+{{ else -}}
+    echo 'Desktop: Waybar update actions are Arch-specific; adapt or disable that module on this distro.'
+{{ end -}}
+    echo 'Desktop: install Hack Nerd Font/Font Awesome, configure monitors/GPU and hyprpaper.conf, and set up iwd/Tailscale services as needed. Services are not started by setup.'
+  elif [[ "$aerospace" == true ]]; then
+    need aerospace 'install AeroSpace separately; SketchyBar is optional and inactive'
+  fi
+  if [[ -z "${SHELL-}" || "${SHELL##*/}" != zsh ]]; then
+    echo 'NEXT: try zsh; to make it your login shell, verify its path in /etc/shells and run chsh explicitly. On WSL also check your terminal launch profile.'
+  fi
+  if ! git config --global user.name >/dev/null 2>&1 || ! git config --global user.email >/dev/null 2>&1; then
+    echo 'NEXT: set your Git identity in ~/.config/git/user.inc before committing.'
+  fi
+  echo 'NEXT: first Neovim launch downloads plugins, parsers and language servers; it needs network access. Run :checkhealth afterwards.'
+  echo 'NEXT: Pi is optional; install its runtime separately, authenticate with /login, and review packages before first launch. Private/local integrations belong in project-local Pi settings.'
+  printf 'Readiness: %s missing or incompatible dependency checks. No shell, authentication, desktop, or tool-version changes were made by this check.\n' "$issues"
+  ((issues == 0))
+}
+install_missing() {
+  if [[ "$install_enabled" != true ]]; then
+    echo 'Package installation is disabled. Reconfigure installPackages first.' >&2
+    return 1
+  fi
+  ((${#missing[@]})) || return 0
+  if [[ -z "$manager" ]]; then
+    echo 'No supported Brew, Pacman, or APT adapter available. Install prerequisites manually.' >&2
+    return 1
+  fi
+  if [[ "${1-}" != --yes ]]; then
+    if [[ ! -t 0 ]]; then
+      echo 'Installation needs interactive approval. Review --plan, then explicitly run dotfiles-setup --install --yes for unattended setup.' >&2
+      return 1
+    fi
+    local answer
+    read -r -p 'Install exactly the missing packages listed above? [y/N] ' answer
+    [[ "$answer" == y || "$answer" == Y ]] || { echo 'Package installation cancelled.'; return 1; }
+  fi
+  case "$manager" in
+    brew) "$brew_bin" install "${missing[@]}" ;;
+    pacman|apt)
+      local elevate=()
+      if ((EUID != 0)); then
+        if ! command -v sudo >/dev/null 2>&1; then
+          echo 'Package installation requires root or sudo.' >&2; return 1
+        fi
+        elevate=(sudo)
+      fi
+      if [[ "$manager" == pacman ]]; then
+        local pacman_yes=()
+        [[ "${1-}" != --yes ]] || pacman_yes=(--noconfirm)
+        "${elevate[@]+"${elevate[@]}"}" pacman -S --needed "${pacman_yes[@]+"${pacman_yes[@]}"}" -- "${missing[@]}"
+      else
+        "${elevate[@]+"${elevate[@]}"}" apt-get install -y --no-install-recommends "${missing[@]}"
+      fi
+      ;;
+  esac
+}
+main() {
+  case "${1:---plan}" in
+    --plan) [[ $# -le 1 ]] || return 2; plan; readiness || true ;;
+    --check) [[ $# -eq 1 ]] || return 2; plan; readiness ;;
+    --install)
+      [[ $# -eq 1 || ( $# -eq 2 && "$2" == --yes ) ]] || return 2
+      plan; install_missing "${2-}"; readiness
+      ;;
+    --apply)
+      plan
+      if [[ "$install_enabled" == true ]]; then install_missing; fi
+      ;;
+    *) echo 'Usage: dotfiles-setup [--plan | --check | --install [--yes]]' >&2; return 2 ;;
+  esac
+}

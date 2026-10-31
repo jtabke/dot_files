@@ -1,11 +1,12 @@
 {
   "toolDescriptionMode": "compact",
   "asyncByDefault": true,
+  "autoResume": false,
   "forceTopLevelAsync": true,
   "waitTool": {
     "enabled": false
   },
-  "toolTimeoutMs": 600000,
+  "checkpointBeforeDeadlineMs": 600000,
   "resultScanLogging": "activity",
   "fleetView": true,
   "globalConcurrencyLimit": 4,

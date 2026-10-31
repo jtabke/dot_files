@@ -9,15 +9,14 @@ if [[ -n "${HOMEBREW_PREFIX-}" && -d "$HOMEBREW_PREFIX/share/zsh/site-functions"
 fi
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-if [[ -n ~/.cache/zsh/.zcompdump(#qN.mh+24) ]]; then
+mkdir -p "$HOME/.cache/zsh"
+if [[ ! -f ~/.cache/zsh/.zcompdump || -n ~/.cache/zsh/.zcompdump(#qN.mh+24) ]]; then
   compinit -d ~/.cache/zsh/.zcompdump
 else
   compinit -C -d ~/.cache/zsh/.zcompdump
 fi
 _comp_options+=(globdots)
 
-alias vim='nvim'
-alias vi='nvim'
 if [[ "$OSTYPE" == darwin* ]]; then
   alias ls='ls -a -G'
   alias ll='ls -lah -G'
@@ -31,7 +30,9 @@ function chpwd { emulate -L zsh; ls -a }
 # for a prompt-driven terminal, not for command-mode `zsh -ic` health checks.
 if [[ -o zle && -z "${ZSH_EXECUTION_STRING-}" ]] && command -v fzf >/dev/null 2>&1; then
   export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --glob "!.git/*"'
-  source <(fzf --zsh)
+  if fzf --zsh >/dev/null 2>&1; then
+    source <(fzf --zsh)
+  fi
 fi
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"

@@ -1,10 +1,27 @@
-{{- $role := promptChoiceOnce . "role" "Machine role" (list "workstation" "shell") -}}
-{{- $desktop := promptChoiceOnce . "desktop" "Desktop environment" (list "auto" "hyprland" "aerospace" "none") -}}
-{{- $installPackages := promptBoolOnce . "installPackages" "Install missing packages during apply?" -}}
-{{- $autoTmux := promptBoolOnce . "autoTmux" "Automatically attach interactive shells to tmux?" -}}
 {{- $kernel := lower (default "" (index .chezmoi.kernel "osrelease")) -}}
 {{- $isWSL := or (contains "microsoft" $kernel) (contains "wsl" $kernel) -}}
 {{- $osReleaseID := lower (default "" (index .chezmoi.osRelease "id")) -}}
+{{- $role := "shell" -}}
+{{- $desktop := "none" -}}
+{{- if $isWSL -}}
+{{- warnf "WSL detected: shell/CLI only; skipping role and desktop questions." -}}
+{{- else -}}
+{{- $role = promptChoiceOnce . "role" "Machine role" (list "workstation" "shell") -}}
+{{- if eq $role "workstation" -}}
+{{- $choices := list "none" -}}
+{{- if eq .chezmoi.os "linux" -}}
+{{- $choices = list "auto" "hyprland" "none" -}}
+{{- else if eq .chezmoi.os "darwin" -}}
+{{- $choices = list "auto" "aerospace" "none" -}}
+{{- end -}}
+{{- $desktop = promptChoiceOnce . "desktop" "Desktop environment" $choices -}}
+{{- end -}}
+{{- end -}}
+{{- warnf "Profile: %s / %s. Desktop profiles configure an existing desktop; they do not install one." $role $desktop -}}
+{{- warnf "Optional packages: Git, Git LFS, Neovim, Vim, zsh, tmux, ripgrep, fzf, Node/npm, C compiler, make, curl, unzip; Stylua/Prettier on Arch/Homebrew. Fuzzel only on native Linux Hyprland. The guided ./setup flow previews the exact plan and asks separately before applying configs or installing packages. Manual users can preview with scripts/setup.sh --plan. Old tool versions are reported, not automatically upgraded." -}}
+{{- $installPackages := promptBoolOnce . "installPackages" "Install missing packages during apply?" -}}
+{{- warnf "tmux keeps terminal sessions alive after disconnecting. Auto-tmux opens or reconnects to one in interactive terminals, including SSH; it is optional on every machine role." -}}
+{{- $autoTmux := promptBoolOnce . "autoTmux" "Automatically open or reconnect to tmux (including SSH)?" -}}
 [data]
     role = {{ $role | quote }}
     desktop = {{ $desktop | quote }}

@@ -1,0 +1,3 @@
+{{ includeTemplate "setup.sh.tmpl" . }}
+# Report after every full apply, not only when the package hook changes.
+main --check || true

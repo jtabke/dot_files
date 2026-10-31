@@ -28,11 +28,17 @@ Paths may be JSONL files or directories. Directories are searched recursively
 for *.jsonl files. If no paths are given, ~/.pi/agent/sessions is searched.
 Tool calls are deduplicated by their JSONL tool-call ID. Checks cover immediate
 post-wait status calls, action:"mission", unexpected detached workflow results,
-output-path collision errors, direct or foreground execution, spawn-budget grants,
-worker hard budgets, and worker launches without an effective checked-or-stronger
+output-path collisions, obsolete workflow parameters, spawn-budget grants,
+worker hard budgets, failed subagent setup/tools/evidence, and worker launches
+without an explicit checked-or-stronger
 acceptance or host gate. Checked acceptance must list changed-files, commands-run,
 residual-risks, validation-output, and no-staged-files. A workflow-level checked
 acceptance or host gate counts as the default for its child launches.
+Direct single-child launches and intentional foreground calls are valid.
+Inline workflow checks inspect options.script; reply-block/file-backed scripts and
+dynamic agent variables are not inferred. Counts summarize observed warning kinds,
+not root causes or permission to retry. Inferred writer acceptance is not an explicit
+verification contract. Set review.required explicitly for substantial writer work.
 A status warning is reported only when the next detectable tool call after a
 successful wait is a subagent status call. Dynamic worker agent variables are
 not inferred. Exit 0 means clean, 1 means policy warnings, and 2 means usage,
@@ -283,9 +289,13 @@ function workflowWorkerLaunches(workflowScript) {
   return launches;
 }
 
+function launchArguments(record) {
+  return { ...record.arguments, ...decodeArguments(record.arguments.options) };
+}
+
 function inspectWorkerLaunch(record) {
   if (record.name !== "subagent") return;
-  const args = record.arguments;
+  const args = launchArguments(record);
   if (args.agent === "worker") {
     if (!args.gate && !isCheckedOrStrongerAcceptance(args.acceptance)) {
       addWarning(
@@ -306,10 +316,10 @@ function inspectWorkerLaunch(record) {
       );
     }
   }
-  if (typeof args.workflowScript !== "string") return;
+  if (typeof args.script !== "string") return;
   const workflowAcceptance =
     Boolean(args.gate) || isCheckedOrStrongerAcceptance(args.acceptance);
-  workflowWorkerLaunches(args.workflowScript).forEach((launch, index) => {
+  workflowWorkerLaunches(args.script).forEach((launch, index) => {
     if (!launch.checked && !workflowAcceptance) {
       addWarning(
         "worker-acceptance",
@@ -333,26 +343,12 @@ function inspectWorkerLaunch(record) {
 
 function inspectCall(record) {
   if (record.name !== "subagent") return;
-  const args = record.arguments;
-  if (!args.action) {
-    if (typeof args.workflowScript !== "string") {
-      addWarning(
-        "direct-execution",
-        record.id,
-        record.path,
-        record.line,
-        "subagent execution bypasses workflowScript; use one stable-key workflow even for a single child",
-      );
-    }
-    if (args.async === false) {
-      addWarning(
-        "foreground-execution",
-        record.id,
-        record.path,
-        record.line,
-        "foreground subagent execution blocks the parent; launch async unless the parent itself must block",
-      );
-    }
+  const args = launchArguments(record);
+  if (Object.hasOwn(args, "workflowScript") || Object.hasOwn(args, "workflowScriptPath")) {
+    addWarning(
+      "obsolete-workflow-parameter", record.id, record.path, record.line,
+      "workflowScript/workflowScriptPath were removed; use workflow with a reply block, script file, or options.script",
+    );
   }
   if (args.action === "grant-spawn-budget") {
     addWarning(
@@ -372,7 +368,7 @@ function inspectCall(record) {
       'unsupported action "mission"; use a supported mission.* action such as mission.close',
     );
   }
-  inspectWorkerLaunch(record);
+  if (!args.action) inspectWorkerLaunch(record);
 }
 
 function isSuccessfulWait(result) {
@@ -391,10 +387,11 @@ function isSuccessfulWait(result) {
 
 function isDetachedWorkflowResult(result, call) {
   if (!call || call.name !== "subagent") return false;
-  if (typeof call.arguments.workflowScript !== "string") return false;
+  const args = launchArguments(call);
+  if (!args.workflow) return false;
   const details = result.details;
   const expectedOuterAsyncLaunch = Boolean(
-    call.arguments.async !== false &&
+    args.async !== false &&
       details?.asyncId &&
       Array.isArray(details.results) &&
       details.results.length === 0,
@@ -493,7 +490,7 @@ async function scanFile(path, cutoff) {
       ? (callsInFileById.get(result.toolCallId) ??
         callsById.get(result.toolCallId))
       : undefined;
-    if (call?.name === "subagent_wait" && isSuccessfulWait(result)) {
+    if (["bg_wait", "subagent_wait"].includes(call?.name) && isSuccessfulWait(result)) {
       for (let next = index + 1; next < events.length; next += 1) {
         if (events[next].type !== "call") continue;
         const nextCall = events[next].record;
@@ -529,6 +526,19 @@ function inspectResults() {
         result.line,
         "workflow result returned a detached child notice; await stable-key child results inside the workflow",
       );
+    }
+    if ((call?.name === "subagent" || result.toolName === "subagent") && result.isError) {
+      const signals = [
+        ["child-setup-failure", /(?:extension|provider|model)[^\n]{0,120}(?:failed|missing|not (?:found|registered|loaded))|(?:failed to (?:load|launch)|before (?:child )?startup)/i],
+        ["tool-timeout", /tool[^\n]{0,100}(?:timed? ?out|timeout)|(?:timed? ?out|timeout)[^\n]{0,100}tool/i],
+        ["acceptance-failure", /acceptance[^\n]{0,100}(?:failed|rejected|missing)|(?:missing|invalid)[^\n]{0,100}(?:evidence|acceptance.report)/i],
+      ];
+      for (const [kind, pattern] of signals) {
+        if (pattern.test(result.text)) addWarning(
+          kind, result.toolCallId ?? result.id, result.path, result.line,
+          `${kind}: inspect the run receipt before changing configuration or retrying`,
+        );
+      }
     }
     if (isOutputCollision(result, call)) {
       addWarning(
@@ -593,6 +603,15 @@ async function main() {
     console.error(
       `${warning.path}:${warning.line}: warning: ${warning.message}`,
     );
+  }
+
+  if (warnings.length > 0) {
+    const counts = new Map();
+    for (const { kind } of warnings) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    console.error("Warning counts (observations, not root causes):");
+    for (const [kind, count] of [...counts].sort(([a], [b]) => a.localeCompare(b))) {
+      console.error(`  ${kind}: ${count}`);
+    }
   }
 
   if (parseErrors.length > 0) {
