@@ -48,6 +48,10 @@ check test -f home/dot_config/nvim/after/ftplugin/remove_typescript.vim
 check test -f home/dot_config/nvim/after/ftplugin/remove_python.vim.bak
 check test ! -d home/dot_vim
 check test -f home/.chezmoitemplates/pi-settings.json
+check jq -e '[.packages[] | select(type == "object") | select(.source == "npm:pi-subagents")] | length == 1 and .[0].skills == ["!skills/pi-subagents/**"]' home/.chezmoitemplates/pi-settings.json
+check grep -qF '../../npm/node_modules/pi-subagents/docs/tool-reference.md' home/dot_pi/private_agent/skills/pi-subagents/SKILL.md
+check grep -qF '../../npm/node_modules/pi-subagents/skills/pi-subagents/references/orchestration.md' home/dot_pi/private_agent/skills/pi-subagents/SKILL.md
+check_not grep -qF '../../git/github.com/nicobailon/pi-subagents/' home/dot_pi/private_agent/skills/pi-subagents/SKILL.md
 check test -f home/dot_pi/private_agent/modify_settings.json
 check_not test -x home/dot_pi/private_agent/modify_settings.json
 check test -L .pi/agent

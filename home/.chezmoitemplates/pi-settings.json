@@ -16,7 +16,7 @@
     "git:github.com/jtabke/pi-vim",
     "git:github.com/jtabke/pi-companion",
     {
-      "source": "git:github.com/nicobailon/pi-subagents@main",
+      "source": "npm:pi-subagents",
       "skills": [
         "!skills/pi-subagents/**"
       ]

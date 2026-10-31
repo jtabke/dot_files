@@ -13,7 +13,7 @@ and final acceptance. Children do not fan out unless explicitly authorized.
 
 - One task: `subagent({agent:"worker",task:"...",cwd:"...",context:"fresh"})`.
 - Use a workflow only for actual sequencing, branching, or parallelism. Await every
-  child operation. Read the relevant syntax in the [workflow guide](../../git/github.com/nicobailon/pi-subagents/docs/workflows.md).
+  child operation. Read the relevant syntax in the [workflow guide](../../npm/node_modules/pi-subagents/docs/workflows.md).
 - Use fresh scouts/workers/reviewers. A forked oracle checks decisions against prior
   history; it is not an independent fresh review.
 - Background runs notify the parent on completion. Keep independent work moving,
@@ -39,12 +39,12 @@ a simple launch. Load more only when an unresolved field or procedure requires i
 
 | Need | Reference |
 | --- | --- |
-| Call fields, acceptance, output, resume, or steering | [Tool reference](../../git/github.com/nicobailon/pi-subagents/docs/tool-reference.md) |
-| Workflow syntax and orchestration | [Workflows](../../git/github.com/nicobailon/pi-subagents/docs/workflows.md) |
-| Role tools, context, model, and skill inheritance | [Agents](../../git/github.com/nicobailon/pi-subagents/docs/agents.md) |
-| Feature flags, concurrency, timeouts, or notifications | [Configuration](../../git/github.com/nicobailon/pi-subagents/docs/configuration.md) |
-| Isolated lanes and worktree lifecycle | [Lane reference](../../git/github.com/nicobailon/pi-subagents/skills/pi-subagents/references/multi-lane-orchestration.md) |
-| Mission state or an explicit schedule request | [Missions](../../git/github.com/nicobailon/pi-subagents/docs/missions.md) |
+| Call fields, acceptance, output, resume, or steering | [Tool reference](../../npm/node_modules/pi-subagents/docs/tool-reference.md) |
+| Workflow syntax and orchestration | [Workflows](../../npm/node_modules/pi-subagents/docs/workflows.md) |
+| Role tools, context, model, and skill inheritance | [Agents](../../npm/node_modules/pi-subagents/docs/agents.md) |
+| Feature flags, concurrency, timeouts, or notifications | [Configuration](../../npm/node_modules/pi-subagents/docs/configuration.md) |
+| Isolated lanes and worktree lifecycle | [Lane reference](../../npm/node_modules/pi-subagents/skills/pi-subagents/references/orchestration.md) |
+| Mission state or an explicit schedule request | [Missions](../../npm/node_modules/pi-subagents/docs/missions.md) |
 
 Exact tool acceptance schemas and launch contracts take priority over informal
 examples. Select high effort for difficult financial, migration, concurrency, or
