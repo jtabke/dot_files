@@ -173,7 +173,13 @@ class SetupTests(unittest.TestCase):
                                           ("Install these missing packages now?", "y")])
         self.assertEqual(status, 0, output[-3000:])
         self.assertTrue((self.home / ".zshenv").exists())
-        self.assertIn("install git-lfs", self.receipt.read_text())
+        commands = self.receipt.read_text().splitlines()
+        self.assertEqual(len(commands), 1)
+        self.assertIn(shlex.split(commands[0]), [
+            ["brew", "install", "git-lfs"],
+            ["apt-get", "install", "-y", "--no-install-recommends", "git-lfs"],
+            ["pacman", "-S", "--needed", "--noconfirm", "--", "git-lfs"],
+        ])
         self.assertIn("checked dependencies are ready", output)
 
     def test_guided_disabled_packages_skips_package_prompt(self):
