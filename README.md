@@ -252,17 +252,18 @@ missing/incompatible dependencies; `--plan` is always a read-only report.
   then authenticate with `/login`. Neither credentials nor authentication are
   provisioned here.
 
-The portable Pi baseline no longer declares the private `jtabke/pi-extensions`
-package or a local `~/Documents/Coding/pi-companion` checkout. Companion uses
-its GitHub source on non-WSL machines and remains excluded on WSL. Before
-applying on an existing machine, move wanted private or local integrations to a
-project's `.pi/settings.json` via
-`pi install --local git:github.com/jtabke/pi-extensions` or
-`pi install --local /absolute/path/to/pi-companion` from that project. Set up
-GitHub HTTPS credentials for the private repository first (for example, a Git
-credential helper). Pi\'s `git:github.com/owner/repo` shorthand clones over HTTPS,
-including `pi-extensions`; no SSH key or agent is needed for these packages.
-Do not add those local paths back to the shared baseline.
+The Pi baseline includes the public `git:github.com/jtabke/pi-extensions`
+package and `npm:pi-codex-image-gen`. Pi's `git:github.com/owner/repo` shorthand
+clones over HTTPS; public repositories need no GitHub credentials, SSH key, or
+agent. WSL excludes the package's Ollama
+extensions while retaining its other extensions and the image-generation package.
+Image generation requires separate authentication through `/login codex-images`;
+credentials remain machine-local and are never provisioned by these dotfiles.
+
+Companion also uses its GitHub source on non-WSL machines and remains excluded
+on WSL. Keep local checkout paths out of the shared baseline. If a project needs
+one, declare it in that project's `.pi/settings.json` using
+`pi install --local /absolute/path/to/pi-companion`.
 
 ## Existing-machine adoption
 
@@ -389,7 +390,7 @@ its selection is installed by this repository.
 
 ## HTTPS credentials and optional SSH agent
 
-Pi package sources and the `pi-extensions` opt-in example use HTTPS. Public
+Pi Git package sources, including `pi-extensions`, use HTTPS. Public
 repositories need no GitHub SSH setup; private repositories still need HTTPS
 credentials. An SSH agent is only relevant to separate SSH workflows, not these
 package clones. Chezmoi does not create an SSH-agent service or install keys.

@@ -216,6 +216,8 @@ check_pi_platform_settings() {
     else .packages == $baseline[0].packages end
   ' <<<"$rendered" >/dev/null
 }
+check jq -e '[.packages[] | select(type == "string") | select(. == "git:github.com/jtabke/pi-extensions")] | length == 1' home/.chezmoitemplates/pi-settings.json
+check jq -e '[.packages[] | select(type == "string") | select(. == "npm:pi-codex-image-gen")] | length == 1' home/.chezmoitemplates/pi-settings.json
 check check_pi_platform_settings true
 check check_pi_platform_settings false
 check_not jq -e 'any(.packages[]; (if type == "string" then . else .source end) | contains("lolipopshock/pi-clm"))' home/.chezmoitemplates/pi-settings.json
