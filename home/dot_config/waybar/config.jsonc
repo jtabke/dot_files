@@ -100,7 +100,7 @@
         "return-type": "json",
         "interval": 15,
         "signal": 7,
-        "on-click": "sh -c 'ghostty -e bluetui'",
+        "on-click": "~/.config/waybar/scripts/bluetooth_waybar.py connect",
         "on-click-right": "~/.config/waybar/scripts/bluetooth_waybar.py toggle",
         "tooltip": true
     },

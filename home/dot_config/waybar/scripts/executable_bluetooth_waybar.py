@@ -37,8 +37,8 @@ def run(args: list[str], timeout: float = 5) -> subprocess.CompletedProcess[str]
         return subprocess.CompletedProcess(args, 126, "", str(error))
 
 
-def bluetoothctl(*args: str) -> str:
-    result = run(["bluetoothctl", *args])
+def bluetoothctl(*args: str, timeout: float = 5) -> str:
+    result = run(["bluetoothctl", *args], timeout=timeout)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Bluetooth is unavailable")
     return re.sub(r"\x1b\[[0-9;]*[mK]", "", result.stdout)
@@ -80,7 +80,7 @@ def choose(prompt: str, options: list[str]) -> str:
         )
     except (OSError, subprocess.TimeoutExpired):
         return ""
-    return result.stdout.strip()
+    return result.stdout.strip() if result.returncode == 0 else ""
 
 
 def refresh() -> None:
@@ -128,12 +128,46 @@ def toggle() -> None:
         refresh()
 
 
+def connect() -> None:
+    """Choose and connect a paired device that is not already connected."""
+    try:
+        if not powered():
+            notify("Bluetooth is off; right-click to turn it on")
+            return
+        paired = devices("Paired")
+        connected_addresses = {address for address, _ in devices("Connected")}
+        options = {
+            f"{name} ({address})": (address, name)
+            for address, name in paired
+            if address not in connected_addresses
+        }
+        if not options:
+            notify("No disconnected paired devices; use Bluetui to pair a new device")
+            return
+        selected = choose("Connect Bluetooth", list(options))
+        if selected not in options:
+            return
+        address, name = options[selected]
+        try:
+            bluetoothctl("connect", address, timeout=30)
+            if address in {addr for addr, _ in devices("Connected")}:
+                notify(f"Connected to {name}")
+            else:
+                notify(f"Failed to connect to {name}")
+        finally:
+            refresh()
+    except RuntimeError as error:
+        notify(str(error))
+
+
 def main() -> None:
     command = sys.argv[1] if len(sys.argv) > 1 else "status"
     if command == "status":
         status()
     elif command == "toggle":
         toggle()
+    elif command == "connect":
+        connect()
     else:
         raise SystemExit(f"Unknown command: {command}")
 
