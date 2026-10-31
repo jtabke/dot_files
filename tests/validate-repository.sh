@@ -104,6 +104,7 @@ check_not grep -qF 'minimumReleageAge' home/dot_bunfig.toml
 check grep -qF 'Package installation requires root or sudo.' home/.chezmoitemplates/setup.sh.tmpl
 check test -x setup
 check bash -n setup
+check node --test tests/test-subagent-session-lint.mjs
 check python3 tests/test-setup.py
 check test -f home/dot_config/kitty/symlink_theme.conf
 check test "$(cat home/dot_config/kitty/symlink_theme.conf)" = ./kitty-themes/Galaxy.conf
