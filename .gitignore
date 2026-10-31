@@ -1,2 +1,6 @@
 .DS_Store
 .pi-subagents/
+
+# Generated Python bytecode
+__pycache__/
+*.py[cod]
