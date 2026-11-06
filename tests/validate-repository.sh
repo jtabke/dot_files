@@ -342,7 +342,7 @@ run_profile() {
   # an existing home without overwriting runtime-owned changelog/device state.
   mkdir -p "$dest/.config/nvim/lua/plugins" "$dest/.config/nvim/after/ftplugin" \
     "$dest/.pi/agent"
-  printf '%s\n' '{"lastChangelogVersion":"validation-sentinel","deviceId":"device-sentinel","theme":"runtime-value"}' \
+  printf '%s\n' '{"lastChangelogVersion":"validation-sentinel","deviceId":"device-sentinel","extensionChangelogVersions":{"fixture":"1.2.3"},"theme":"runtime-value"}' \
     >"$dest/.pi/agent/settings.json"
   touch "$dest/.aerospace.toml" \
     "$dest/.config/nvim/lua/plugins/avante.lua" \
@@ -434,7 +434,7 @@ run_profile() {
   check test -f "$dest/.pi/agent/settings.json"
   check test "$(pi_agent_mode "$dest/.pi/agent")" = 700
   check_not test -x "$dest/.pi/agent/settings.json"
-  check jq -e '.lastChangelogVersion == "validation-sentinel" and .deviceId == "device-sentinel"' \
+  check jq -e '.lastChangelogVersion == "validation-sentinel" and .deviceId == "device-sentinel" and .extensionChangelogVersions.fixture == "1.2.3"' \
     "$dest/.pi/agent/settings.json"
   check jq empty "$dest/.pi/agent/settings.json"
   check jq -e --slurpfile baseline home/.chezmoitemplates/pi-settings.json \

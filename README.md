@@ -82,7 +82,7 @@ Chezmoi source names encode target attributes:
 
 The Pi agent source uses `private_agent`, so `~/.pi/agent` is mode `0700`.
 Its `modify_settings.json` applies the baseline in `.chezmoitemplates/pi-settings.json`
-while preserving Pi's runtime-managed top-level `lastChangelogVersion` and
+while preserving Pi's runtime-managed top-level `lastChangelogVersion`, `extensionChangelogVersions`, and
 machine-local `deviceId` when they already exist. The settings target remains a non-executable JSON file.
 
 Use `chezmoi source-path TARGET` when the encoded source path is unclear.

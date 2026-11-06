@@ -1,114 +1,35 @@
 ---
 name: pi-subagents
-description: Launch or supervise authorized Pi child agents with bounded assignments, validation evidence, and recovery.
+description: Launch or recover child agents using Pi's subagent tool. Does not apply to T3 or other delegation runtimes.
 ---
 
 # Pi delegation
 
-Work directly by default. Delegation must be authorized by the user request or
-applicable instructions and earn its coordination cost. The parent owns decisions
-and final acceptance. Children do not fan out unless explicitly authorized.
+Use this skill only for Pi's `subagent` tool. Work directly when briefing and review would cost more than doing the task. Use one worker for a bounded implementation; add a scout only for a question that changes the assignment. Children do not fan out without authorization.
 
-## Choose the smallest shape
+Supply outcome, cwd/base, exclusive boundary, relevant evidence, authority/resources and focused checks. Reuse completed investigation and valid checks. Workers, reviewers and oracles default to fresh context. Select a fork explicitly only for historical consistency: it includes the parent prompt, skills and transcript even when inheritance flags are false. Concurrent writers need separate worktrees, and shared services still need a single mutation owner.
 
-- Work directly when briefing, waiting, and reviewing would cost more than doing
-  the task. Delegate only for a clear ownership, parallelism, or expertise benefit.
-- Default to one worker owning investigation, implementation, and focused validation.
-  Add a scout only for a named uncertainty whose answer changes the assignment;
-  do not impose scout → planner → worker → reviewer stages.
-- One task: `subagent({agent:"worker",task:"...",cwd:"...",context:"fresh"})`.
-- Use a workflow only for actual sequencing, branching, or parallelism. Await every
-  child operation. Read the relevant syntax in the [workflow guide](../../npm/node_modules/pi-subagents/docs/workflows.md).
-- Start new assignments and independent reviews fresh. Resume an eligible worker
-  for a small repair to its own candidate, with only the changed requirements and
-  evidence. Use a forked oracle for historical consistency, not independent review.
-- Background runs notify the parent on completion. Keep independent work moving,
-  then yield when only children remain. Inspect FleetView for progress; do not poll
-  status or call `bg_wait` merely because a normal async child is active.
+## Launch and acceptance
 
-Each assignment needs its outcome, cwd/base, owning boundary, relevant evidence,
-authority/resources, success criteria, focused checks, output, and stop conditions.
-Use the matching local role contract without repeating its generic instructions.
-Send exact paths, decisions, evidence, and success criteria, not the parent's whole
-investigation. Mark completed investigation and still-valid checks so children
-reuse them unless stale or insufficient. Do not make a child rediscover its brief.
+Read only the installed reference section needed for the actual call; tool schemas are authoritative:
 
-Before fanout, name each child's distinct question or exclusive implementation
-boundary, its dependencies, and the result that blocks the parent. Launch independent
-work together and keep useful parent work moving; avoid duplicated investigation.
-Overlapping implementation belongs to one writer. Concurrent writers use isolated
-worktrees from a committed base. Worktrees do not isolate shared services.
+- [Tool reference](../../npm/node_modules/pi-subagents/docs/tool-reference.md): launch fields, acceptance, reports, resume and steering.
+- [Workflows](../../npm/node_modules/pi-subagents/docs/workflows.md): actual sequencing or parallel work, not a mandatory wrapper for simple tasks.
+- [Agents](../../npm/node_modules/pi-subagents/docs/agents.md): tools, context and skill inheritance.
+- [Configuration](../../npm/node_modules/pi-subagents/docs/configuration.md): limits, notifications and optional features.
+- [Worktree lanes](../../npm/node_modules/pi-subagents/skills/pi-subagents/references/orchestration.md): isolation and cleanup.
+- [Missions](../../npm/node_modules/pi-subagents/docs/missions.md): only when durable mission tracking is requested or an existing mission needs recovery.
 
-Default handoffs contain Outcome; Candidate / changed files; Checks; Blockers /
-remaining risks; Artifacts. Keep detailed logs in artifacts and return their paths,
-not duplicate inline and file narratives. A required acceptance or review schema
-takes precedence. Use focused checks first and broader gates only when required.
+For substantial writer tasks, supply explicit acceptance through the supported schema, required evidence/checks and whether independent review is needed. Inferred acceptance does not fail a run on a failed gate; explicit acceptance does. A successful child exit is not verification. Use task-specific deadlines with enough time for the longest tool call and cleanup. Async single runs request a checkpoint five minutes before deadline; adjust it for the task so it leaves room for the longest tool call and cleanup. A checkpoint is disarmed when its lead time reaches the run deadline.
 
-Authorize repair and retry within concrete runtime limits, isolation, and cleanup
-conditions. Escalate failed safety conditions or expanded authority, not routine
-technical choices. Preserve production, monetary, publication, and release boundaries.
+Parallelize independent assignments when useful. The configured child limit applies per workflow and the active-run limit per session, not machine-wide. Serialize shared database mutations and expensive runtime setup through their existing ownership/lease controls; independent source work does not need that serialization.
 
-## Look up only what the call needs
+Background completion notifies the parent. Continue independent work, then yield rather than poll. Treat attention notices as observations, not proof of a stall. Keep models and concurrency at configured defaults unless task difficulty or evidence justifies changing them.
 
-The installed package remains the API source of truth. These references are large:
-locate the relevant heading or parameter with a bounded search, then read that section.
-Do not load every reference for a complex task or request the entire tool guide for
-a simple launch. Load more only when an unresolved field or procedure requires it.
+## Review and recovery
 
-| Need | Reference |
-| --- | --- |
-| Call fields, acceptance, output, resume, or steering | [Tool reference](../../npm/node_modules/pi-subagents/docs/tool-reference.md) |
-| Workflow syntax and orchestration | [Workflows](../../npm/node_modules/pi-subagents/docs/workflows.md) |
-| Role tools, context, model, and skill inheritance | [Agents](../../npm/node_modules/pi-subagents/docs/agents.md) |
-| Feature flags, concurrency, timeouts, or notifications | [Configuration](../../npm/node_modules/pi-subagents/docs/configuration.md) |
-| Isolated lanes and worktree lifecycle | [Lane reference](../../npm/node_modules/pi-subagents/skills/pi-subagents/references/orchestration.md) |
-| Mission state or an explicit schedule request | [Missions](../../npm/node_modules/pi-subagents/docs/missions.md) |
+Return outcome, changed files/candidate, checks, blockers and artifact paths once through the runtime's required report schema. Avoid duplicate file and inline reports. The read-only reviewer has no shell; provide diffs and check evidence. Freeze the candidate during independent review, then rerun checks affected by fixes.
 
-Exact tool acceptance schemas and launch contracts take priority over informal
-examples. Select high effort for difficult financial, migration, concurrency, or
-harness work rather than adding more instructions to a routine model profile.
+After failure, inspect changes and receipts before resuming. Resume an eligible worker for the same outcome; if resume fails before startup, verify no changes and use a smaller fresh assignment. A report-format repair does not invalidate passed implementation checks. Preserve authority, isolation and cleanup boundaries; do not retry without new evidence.
 
-## Evidence and recovery
-
-For substantial writer tasks, make acceptance explicit: checked/verified evidence,
-required checks, and whether independent review is required, with a rationale.
-Direct calls put acceptance in `options.acceptance`; workflow child items use
-`acceptance`. Set `review: { required: true, agent: "reviewer" }` when needed,
-or `review: { required: false }` when focused verification is sufficient. Supply
-supported evidence kinds (changed-files, commands-run, validation-output,
-residual-risks, no-staged-files) and use `acceptance.verify` for host-run checks.
-Read the acceptance-gates reference before composing the exact policy/report.
-Inferred writer acceptance is observable but does not fail the run on a failed
-gate; explicit acceptance does. Neither a successful exit nor child prose is proof.
-
-Keep validation logs in artifacts; return behavior, candidate identity, check
-results, material gaps, and next action. Give fresh reviewers the exact base and
-candidate, a diff artifact, approved behavior, validation commands/results and
-receipt paths, and remaining gaps. The read-only reviewer has no shell; the parent
-runs missing checks and supplies committed-range diffs. Freeze the candidate during
-review and rerun only checks invalidated by accepted fixes.
-
-Do not impose a global hard tool timeout on builds/tests. Set task-specific run
-deadlines with margin for the longest tool call and checkpoint. Async single-agent
-runs get a best-effort checkpoint request ten minutes before their deadline; shorter
-runs need an explicit smaller `options.checkpointBeforeDeadlineMs`. A steer cannot
-interrupt an open tool safely. Composite workflows need child deadlines and manual
-checkpoint steering as needed. Session reopen/reload does not auto-resume workflows;
-inspect retained state and authority before an explicit resume.
-
-For the next few substantive tasks, use existing receipts/transcripts to compare
-elapsed time and usage, repeated investigation, handoffs, and repair cycles—not just
-completion. Note material observations in the existing task handoff; do not create
-a separate dashboard or mandatory reporting stage. Keep models and concurrency
-unchanged unless a demonstrated pattern justifies tuning.
-Run `node ~/.pi/agent/scripts/lint-subagent-sessions.mjs --days 7` when investigating
-setup failures, missing acceptance, timeouts, or output collisions. Lint counts
-cannot judge context-read necessity or overall efficiency; inspect focused traces.
-Observations are not permission to retry or proof that a child stalled.
-
-After failure, inspect existing changes and receipts before retrying. Use a retained
-resume only when eligible; if it fails before startup, verify no changes and use a
-smaller fresh same-role fallback. Do not silently switch execution modes or bypass
-capability ceilings. A report-format failure does not justify repeating passed checks.
-Treat attention notices as observations, not proof of a stall. Restart Pi at an idle
-boundary after settings or package changes, preserving the session and handoff.
+Use `node ~/.pi/agent/scripts/lint-subagent-sessions.mjs --days 7` only to investigate setup, acceptance or timeout failures. Counts are diagnostic, not a measure of productivity. Restart Pi at an idle boundary after package/subagent configuration changes; preserve active work and its handoff.

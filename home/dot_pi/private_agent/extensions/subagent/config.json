@@ -6,7 +6,7 @@
   "waitTool": {
     "enabled": false
   },
-  "checkpointBeforeDeadlineMs": 600000,
+  "checkpointBeforeDeadlineMs": 300000,
   "resultScanLogging": "activity",
   "fleetView": true,
   "globalConcurrencyLimit": 4,
@@ -19,7 +19,7 @@
   "artifactDir": "session",
   "maxSubagentDepth": 1,
   "missions": {
-    "enabled": true,
+    "enabled": false,
     "globalIndex": true,
     "retainTerminal": 100
   },
@@ -39,13 +39,11 @@
     "activeNoticeAfterMs": 300000,
     "failedToolAttemptsBeforeAttention": 3,
     "notifyOn": [
-      "needs_attention",
-      "active_long_running"
+      "needs_attention"
     ],
     "notifyChannels": [
       "event",
-      "async",
-      "intercom"
+      "async"
     ]
   },
   "disabledFeatures": [

@@ -107,7 +107,7 @@ test("malformed JSONL remains an error, not clean evidence", () => {
 test("baseline uses manual resume and checkpointing without blanket tool limits", () => {
   const config = JSON.parse(readFileSync(new URL("../home/dot_pi/private_agent/extensions/subagent/config.json", import.meta.url)));
   assert.equal(config.autoResume, false);
-  assert.equal(config.checkpointBeforeDeadlineMs, 600000);
+  assert.equal(config.checkpointBeforeDeadlineMs, 300000);
   assert.equal(Object.hasOwn(config, "toolTimeoutMs"), false);
   assert.equal(config.globalConcurrencyLimit, 4);
   assert.equal(config.maxActiveAsyncRunsPerSession, 3);

@@ -29,12 +29,13 @@
         "defaultContext": "fresh",
         "model": "openai/gpt-6.1-sol",
         "thinking": "low",
-        "inheritGlobalContext": false,
-        "inheritSkills": false
+        "inheritGlobalContext": true,
+        "inheritSkills": false,
+        "inheritProjectContext": true
       },
       "oracle": {
         "acceptanceRole": "read-only",
-        "defaultContext": "fork",
+        "defaultContext": "fresh",
         "model": "openai/gpt-6.1-sol",
         "thinking": "high",
         "inheritGlobalContext": false,
@@ -54,8 +55,9 @@
         "defaultContext": "fresh",
         "model": "openai/gpt-6.1-sol",
         "thinking": "medium",
-        "inheritGlobalContext": false,
-        "inheritSkills": false
+        "inheritGlobalContext": true,
+        "inheritSkills": false,
+        "inheritProjectContext": true
       },
       "scout": {
         "acceptanceRole": "read-only",
@@ -70,8 +72,9 @@
         "defaultContext": "fresh",
         "model": "openai/gpt-6.1-sol",
         "thinking": "medium",
-        "inheritGlobalContext": false,
-        "inheritSkills": false
+        "inheritGlobalContext": true,
+        "inheritSkills": false,
+        "inheritProjectContext": true
       }
     },
     "defaultModel": "openai/gpt-6.1-sol",
