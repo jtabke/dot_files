@@ -87,6 +87,49 @@ machine-local `deviceId` when they already exist. The settings target remains a 
 
 Use `chezmoi source-path TARGET` when the encoded source path is unclear.
 
+### Global Pi assignment shortcuts
+
+The four `subagent-*-contract` prompts take **one quoted assignment brief**:
+
+- `subagent-worker-contract`: worker implementation and validation.
+- `subagent-review-contract`: independent reviewer with supplied diff and receipts.
+- `subagent-scout-contract`: bounded source investigation.
+- `subagent-research-contract`: decision-bounded external research.
+
+Ordinary Pi template invocation expands the assignment in the current session. It
+**does not launch a child**:
+
+```text
+/subagent-review-contract "Review the specified candidate using the supplied diff and validation receipts. Scope and authority: read only."
+```
+
+For a native child, use the installed `pi-subagents` adapter. It reads each
+prompt's explicit `subagent` role:
+
+```text
+/prompt-workflow subagent-review-contract "Review the specified candidate using the supplied diff and validation receipts. Scope and authority: read only."
+```
+
+Run native launches from the intended checkout; a checkout path inside the brief
+is not launch configuration. Include the role's required scope, evidence and
+permissions in the brief. Unquoted multiple arguments are not supported. An empty
+brief includes instructions to ask for the assignment before starting work; this
+is prompt guidance, not a launch-time permission gate. Substantial worker tasks
+still require explicit runtime acceptance through the supported subagent launcher;
+a policy written in a brief does not configure enforced acceptance.
+
+After changing these prompts, run `/reload` in existing Pi sessions at an idle
+boundary. New sessions discover them automatically. The focused test below checks
+source contracts and, when Pi and `pi-subagents` are already installed, exercises
+native expansion and adapter routing with fake children in temporary directories:
+
+```sh
+node --test tests/test-pi-prompt-contracts.mjs
+```
+
+No model calls or package installation are performed. Missing installed-runtime
+coverage is reported as skipped, not established by the source checks.
+
 ## Machine profiles
 
 Initialization detects the platform and asks only relevant questions. Answers

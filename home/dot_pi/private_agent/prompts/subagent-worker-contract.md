@@ -1,46 +1,28 @@
 ---
-description: Render a bounded implementation and validation assignment
+description: Bounded worker assignment from one quoted brief
+argument-hint: '"<assignment brief>"'
+subagent: worker
 ---
 
-Outcome
-{{goal}}
+Assignment
+$1
 
-Scope and evidence
-- cwd/repository: {{cwd}}
-- allowed files or owning seam: {{target}}
-- base, candidate, existing plan/checkpoint, contracts, and relevant evidence: {{evidence}}
-
-Approved decisions
-{{decisions}}
-
-Authority and resources
-{{authority}}
-
-Non-goals
-{{nonGoals}}
-
-Success criteria
-{{success}}
-
-Validation
-{{validation}}
+Supply the outcome, checkout/base, allowed files or owning seam, evidence, approved
+decisions, authority/resources, non-goals, success criteria, checks, acceptance/review,
+runtime/checkpoint and stop conditions. Do not infer permission from omitted fields.
+If no assignment was supplied, ask for it and do not start work.
 
 Acceptance and independent review
-{{acceptance}}
 For substantial changes, the parent must supply an explicit checked/verified
 acceptance policy, required evidence and checks, and a review decision with rationale.
 A successful exit or self-reported test result is not host verification. Follow the
 runtime-supplied acceptance-report schema exactly; do not invent a replacement.
 
 Runtime and checkpoint
-{{runtime}}
 Use assignment-specific run deadlines. Allow enough time for the longest expected
 tool call and checkpoint; a hard deadline can interrupt mutation. On a checkpoint
 request, finish the current tool call, report the candidate, changes, check/log
 state, remaining work, and staging/commit state, then stop starting new work.
-
-Stop conditions
-{{stopRules}}
 
 Own the bounded outcome through investigation, implementation, and focused checks;
 do not introduce extra scout/planning stages. Start from the supplied paths and

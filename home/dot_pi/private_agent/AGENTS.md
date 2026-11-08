@@ -16,7 +16,7 @@ Diagnose failures before retrying. Continue repairs while new evidence supports 
 
 ## Context and delegation
 
-Work directly unless delegation provides useful independence, expertise, or parallelism. Use one orchestration system for the task: T3 tools when the session is managed through T3; otherwise the available native tools. Load the local `pi-subagents` skill only when using Pi's `subagent` tool. Do not apply its launch or report schemas to T3 or other runtimes.
+Work directly unless delegation provides useful independence, expertise, or parallelism. Follow the active runtime's delegation instructions. Load the local `pi-subagents` skill only when using Pi's `subagent` tool; do not apply its launch or report schemas to other delegation runtimes.
 
 Give a child its outcome, checkout/base, exclusive boundary, relevant evidence, authority, and required checks. Use fresh context for independent review. Inspect changes and evidence before retrying a failed child. Do not treat notifications or a successful exit as proof of correctness or failure.
 

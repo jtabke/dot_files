@@ -1,26 +1,17 @@
 ---
-description: Render an independent review of a specified candidate
+description: Independent reviewer assignment from one quoted brief
+argument-hint: '"<assignment brief>"'
+subagent: reviewer
 ---
 
-Review question
-{{goal}}
+Assignment
+$1
 
-Target
-- cwd/repository: {{cwd}}
-- exact candidate commit/patch, base, files, or owning seam: {{target}}
-- approved behavior, contracts, and governing evidence: {{evidence}}
-- supplied diff artifact for the exact base/candidate: {{diff}}
-- validation commands, results, environment, log/receipt paths: {{validationEvidence}}
-- known gaps and assumptions: {{gaps}}
-
-Constraints
-{{constraints}}
-
-Validation
-{{validation}}
-
-Stop conditions
-{{stopRules}}
+Supply the review question, checkout, exact candidate/base or owning seam, approved
+behavior/contracts, diff artifact, validation receipts, known gaps, constraints,
+allowed checks/resources and stop conditions. Do not invent candidate identity or
+missing evidence.
+If no assignment was supplied, ask for it and do not start work.
 
 Review read-only. Verify candidate identity before reviewing; report a mismatch
 instead of substituting another revision. Do not modify source, stage, commit,

@@ -1,20 +1,15 @@
 ---
-description: Render a focused read-only source investigation
+description: Focused scout assignment from one quoted brief
+argument-hint: '"<assignment brief>"'
+subagent: scout
 ---
 
-Question to resolve
-{{goal}}
+Assignment
+$1
 
-Starting points
-- cwd/repository: {{cwd}}
-- files, symbols, or owning seam: {{target}}
-- known evidence: {{evidence}}
-
-Boundaries
-{{boundaries}}
-
-Stop conditions
-{{stopRules}}
+Supply the question, checkout, starting files/symbols or owning seam, known evidence,
+boundaries and stop conditions. Do not infer authority beyond the supplied scope.
+If no assignment was supplied, ask for it and do not start work.
 
 Investigate read-only from the supplied starting points. Return the owning path and
 relevant callers, file/line references, observed behavior and invariants, the smallest
