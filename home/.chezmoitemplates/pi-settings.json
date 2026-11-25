@@ -78,6 +78,9 @@
       }
     },
     "defaultModel": "openai/gpt-6.2-sol",
+    "defaultSubagentOnlyExtensions": [
+      "~/.pi/agent/git/github.com/jtabke/pi-extensions/extensions/fast/index.ts"
+    ],
     "defaultThinking": "medium"
   },
   "theme": "dark",

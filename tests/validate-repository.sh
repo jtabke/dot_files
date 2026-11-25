@@ -208,6 +208,9 @@ check_pi_platform_settings() {
     execute-template < home/dot_pi/private_agent/modify_settings.json)
   jq -e --argjson wsl "$is_wsl" --slurpfile baseline home/.chezmoitemplates/pi-settings.json '
     .lastChangelogVersion == "platform-sentinel" and
+    .subagents.defaultSubagentOnlyExtensions == [
+      "~/.pi/agent/git/github.com/jtabke/pi-extensions/extensions/fast/index.ts"
+    ] and
     if $wsl then
       .packages == ($baseline[0].packages | map(
         select(. != "git:github.com/jtabke/pi-companion") |

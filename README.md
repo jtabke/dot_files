@@ -303,6 +303,12 @@ extensions while retaining its other extensions and the image-generation package
 Image generation requires separate authentication through `/login codex-images`;
 credentials remain machine-local and are never provisioned by these dotfiles.
 
+Pi subagents use the same `/fast` preference as a parent running the same model.
+Use `/fast models` to change another model's speed. The baseline loads the Fast
+extension in children by default via `subagents.defaultSubagentOnlyExtensions`.
+Leave the separate `pi-subagents` `fast` option unset with this setup. Restart Pi
+when idle after applying the setting and updating `pi-extensions`.
+
 Companion also uses its GitHub source on non-WSL machines and remains excluded
 on WSL. Keep local checkout paths out of the shared baseline. If a project needs
 one, declare it in that project's `.pi/settings.json` using
